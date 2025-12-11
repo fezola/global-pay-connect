@@ -24,7 +24,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     // Save the attempted URL for redirecting after login
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: { pathname: location.pathname } }} replace />;
   }
 
   return <>{children}</>;

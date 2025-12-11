@@ -1,0 +1,516 @@
+openapi: 3.0.3
+info:
+  title: Klyr API
+  description: |
+    Accept crypto payments on Solana with Klyr's REST API.
+    
+    ## Authentication
+    
+    Authenticate your API requests by including your API key in the `x-api-key` header.
+    
+    ```
+    x-api-key: sk_test_your_api_key_here
+    ```
+    
+    ## Rate Limiting
+    
+    API requests are limited to 100 requests per minute per API key.
+    
+    ## Errors
+    
+    Klyr uses conventional HTTP response codes to indicate success or failure.
+    
+    - `2xx` - Success
+    - `4xx` - Client errors (invalid request, authentication failure, etc.)
+    - `5xx` - Server errors
+    
+  version: 1.0.0
+  contact:
+    name: Klyr Support
+    email: support@klyr.io
+    url: https://klyr.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://crkhkzcscgoeyspaczux.supabase.co/functions/v1/api-v1
+    description: Production server
+  - url: http://localhost:54321/functions/v1/api-v1
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Payments
+    description: Create and manage payment intents
+  - name: Balances
+    description: View your account balances
+  - name: Customers
+    description: Manage customer records
+  - name: Webhooks
+    description: View webhook event history
+
+paths:
+  /payments:
+    post:
+      tags:
+        - Payments
+      summary: Create a payment
+      description: Creates a new payment intent for accepting crypto payments
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: string
+                  description: Payment amount
+                  example: "100.00"
+                currency:
+                  type: string
+                  description: Currency code
+                  default: USDC
+                  enum: [USDC, USDT]
+                customer_id:
+                  type: string
+                  description: Customer ID
+                  example: "cus_abc123"
+                customer_email:
+                  type: string
+                  format: email
+                  description: Customer email
+                  example: "customer@example.com"
+                description:
+                  type: string
+                  description: Payment description
+                  example: "Order #1234"
+                metadata:
+                  type: object
+                  description: Custom metadata
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+    
+    get:
+      tags:
+        - Payments
+      summary: List payments
+      description: Returns a list of your payments
+      operationId: listPayments
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: status
+          in: query
+          description: Filter by payment status
+          schema:
+            type: string
+            enum: [pending, processing, succeeded, failed, cancelled, expired]
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /payments/{id}:
+    get:
+      tags:
+        - Payments
+      summary: Retrieve a payment
+      description: Retrieves the details of a payment
+      operationId: getPayment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Payment ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /balances:
+    get:
+      tags:
+        - Balances
+      summary: List balances
+      description: Returns all your account balances
+      operationId: listBalances
+      responses:
+        '200':
+          description: List of balances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Balance'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /customers:
+    post:
+      tags:
+        - Customers
+      summary: Create a customer
+      description: Creates a new customer record
+      operationId: createCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "customer@example.com"
+                name:
+                  type: string
+                  example: "John Doe"
+                metadata:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags:
+        - Customers
+      summary: List customers
+      description: Returns a list of your customers
+      operationId: listCustomers
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List webhook events
+      description: Returns a list of webhook events
+      operationId: listWebhookEvents
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of webhook events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookEvent'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication
+
+  schemas:
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "pi_abc123"
+        merchant_id:
+          type: string
+        customer_id:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          example: 100.00
+        currency:
+          type: string
+          example: "USDC"
+        status:
+          type: string
+          enum: [pending, processing, succeeded, failed, cancelled, expired]
+        payment_address:
+          type: string
+          example: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+        expected_token_mint:
+          type: string
+        chain:
+          type: string
+          example: "solana"
+        tx_signature:
+          type: string
+          nullable: true
+        confirmations:
+          type: integer
+          default: 0
+        customer_email:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Balance:
+      type: object
+      properties:
+        id:
+          type: string
+        merchant_id:
+          type: string
+        currency:
+          type: string
+          example: "USDC"
+        total:
+          type: number
+          example: 1000.00
+        onchain:
+          type: number
+          example: 1000.00
+        offchain:
+          type: number
+          example: 0.00
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "cus_abc123"
+        merchant_id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        merchant_id:
+          type: string
+        event_type:
+          type: string
+          example: "payment.succeeded"
+        resource_type:
+          type: string
+          example: "payment_intent"
+        resource_id:
+          type: string
+        payload:
+          type: object
+        status:
+          type: string
+          enum: [pending, delivered, failed, retrying]
+        attempts:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid API key"
+        code:
+          type: string
+          example: "invalid_api_key"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid API key"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Payment not found"
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Rate limit exceeded"
+

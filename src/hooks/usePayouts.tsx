@@ -45,26 +45,38 @@ export function usePayouts() {
     }
   }, [merchant?.id]);
 
-  const createPayout = async (payout: Omit<Payout, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
-    if (!merchant?.id) return { error: new Error('No merchant') };
+  const createPayout = async (payoutData: {
+    amount: string;
+    currency?: string;
+    destination_address?: string;
+    destination_id?: string;
+    notes?: string;
+  }) => {
+    if (!merchant?.id) throw new Error('No merchant');
 
     try {
-      const { data, error } = await supabase
-        .from('payouts')
-        .insert({
-          merchant_id: merchant.id,
-          ...payout
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('create-payout', {
+        body: payoutData,
+      });
 
       if (error) throw error;
-      setPayouts(prev => [data as Payout, ...prev]);
-      toast({ title: 'Payout requested successfully' });
-      return { data, error: null };
+
+      // Refresh payouts list
+      await fetchPayouts();
+
+      toast({
+        title: 'Payout requested successfully',
+        description: data.message || 'Your withdrawal request has been created'
+      });
+
+      return data;
     } catch (error: any) {
-      toast({ title: 'Error creating payout', description: error.message, variant: 'destructive' });
-      return { error };
+      toast({
+        title: 'Error creating payout',
+        description: error.message,
+        variant: 'destructive'
+      });
+      throw error;
     }
   };
 

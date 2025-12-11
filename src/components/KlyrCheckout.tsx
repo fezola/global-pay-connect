@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAppStore } from "@/lib/store";
+import { usePaymentIntents } from "@/hooks/usePaymentIntents";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentQRCode } from "@/components/PaymentQRCode";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface KlyrCheckoutProps {
   onClose: () => void;
@@ -15,18 +17,19 @@ export function KlyrCheckout({ onClose, onSuccess }: KlyrCheckoutProps) {
   const [amount, setAmount] = useState("100.00");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { addTransaction, updateTransaction, updateBalance } = useAppStore();
+  const [paymentIntent, setPaymentIntent] = useState<any>(null);
+  const { createPaymentIntent } = usePaymentIntents();
   const { toast } = useToast();
 
-  const testAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD81";
-
   const copyAddress = () => {
-    navigator.clipboard.writeText(testAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (paymentIntent?.payment_address) {
+      navigator.clipboard.writeText(paymentIntent.payment_address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  const handlePay = async () => {
+  const handleCreatePayment = async () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       toast({ title: "Invalid amount", variant: "destructive" });
@@ -34,98 +37,154 @@ export function KlyrCheckout({ onClose, onSuccess }: KlyrCheckoutProps) {
     }
 
     setLoading(true);
-    
-    const txId = `tx_${Math.random().toString(36).substring(2, 14)}`;
-    const now = new Date().toISOString();
-    
-    addTransaction({
-      id: txId,
-      status: 'pending',
-      type: 'deposit',
-      amount: numAmount.toFixed(2),
+
+    const { data, error } = await createPaymentIntent({
+      amount: numAmount,
       currency: 'USDC',
       description: 'Test payment',
-      createdAt: now,
-      updatedAt: now,
-      auditLogs: [
-        { timestamp: now, event: 'charge_created', details: 'Payment intent created' },
-      ],
     });
 
-    toast({ title: "Payment initiated", description: "Waiting for on-chain confirmation..." });
+    setLoading(false);
 
-    // Simulate blockchain confirmation
-    setTimeout(() => {
-      const confirmedTime = new Date().toISOString();
-      updateTransaction(txId, {
-        status: 'settled_onchain',
-        updatedAt: confirmedTime,
-        txHash: `0x${Math.random().toString(16).substring(2, 42)}`,
-        auditLogs: [
-          { timestamp: now, event: 'charge_created', details: 'Payment intent created' },
-          { timestamp: confirmedTime, event: 'payment_received', details: 'On-chain payment detected' },
-          { timestamp: confirmedTime, event: 'settled', details: 'Transaction confirmed' },
-        ],
+    if (error) {
+      toast({
+        title: "Failed to create payment",
+        description: error.message,
+        variant: "destructive"
       });
-      updateBalance('USDC', numAmount);
-      
-      setLoading(false);
-      toast({ title: "Payment confirmed", description: `+${numAmount.toFixed(2)} USDC added to your balance` });
-      onSuccess?.();
-      onClose();
-    }, 2000);
+      return;
+    }
+
+    setPaymentIntent(data);
+    toast({
+      title: "Payment created",
+      description: "Send USDC to the address below to complete payment"
+    });
   };
+
+  // Listen for payment status updates
+  useEffect(() => {
+    if (paymentIntent?.status === 'succeeded') {
+      toast({
+        title: "Payment confirmed!",
+        description: `+${paymentIntent.amount} ${paymentIntent.currency} received`
+      });
+      onSuccess?.();
+      setTimeout(() => onClose(), 2000);
+    }
+  }, [paymentIntent?.status, onSuccess, onClose, toast, paymentIntent?.amount, paymentIntent?.currency]);
 
   return (
     <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-card rounded-lg shadow-lg w-full max-w-md animate-fade-in">
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="text-lg font-semibold">Receive Test USDC</h3>
+          <h3 className="text-lg font-semibold">
+            {paymentIntent ? 'Complete Payment' : 'Create Payment'}
+          </h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <div className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="text"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="100.00"
-              className="font-mono"
-            />
-          </div>
+          {!paymentIntent ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (USDC)</Label>
+                <Input
+                  id="amount"
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="100.00"
+                  className="font-mono"
+                  disabled={loading}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label>Test Address</Label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 p-2 bg-muted rounded text-xs font-mono truncate">
-                {testAddress}
-              </code>
-              <Button variant="outline" size="icon" onClick={copyAddress}>
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              <Button onClick={handleCreatePayment} className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Payment...
+                  </>
+                ) : (
+                  "Create Payment Intent"
+                )}
               </Button>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <div className="text-2xl font-bold">
+                  {paymentIntent.amount} {paymentIntent.currency}
+                </div>
+              </div>
 
-          <div className="pt-4 flex gap-2">
-            <Button onClick={handlePay} className="flex-1" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                "Pay"
+              <Tabs defaultValue="address" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="address">Address</TabsTrigger>
+                  <TabsTrigger value="qr">QR Code</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="address" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Payment Address (Solana)</Label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 p-2 bg-muted rounded text-xs font-mono truncate">
+                        {paymentIntent.payment_address}
+                      </code>
+                      <Button variant="outline" size="icon" onClick={copyAddress}>
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
+                    <p className="mb-2">To complete this payment:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Copy the payment address above</li>
+                      <li>Send exactly {paymentIntent.amount} USDC on Solana</li>
+                      <li>Wait for blockchain confirmation (~30 seconds)</li>
+                    </ol>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="qr" className="flex justify-center py-4">
+                  <PaymentQRCode
+                    address={paymentIntent.payment_address}
+                    amount={paymentIntent.amount}
+                    currency={paymentIntent.currency}
+                    label="Klyr Payment"
+                  />
+                </TabsContent>
+              </Tabs>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${
+                    paymentIntent.status === 'succeeded' ? 'bg-green-500' :
+                    paymentIntent.status === 'processing' ? 'bg-yellow-500' :
+                    'bg-blue-500'
+                  }`} />
+                  <span className="text-sm capitalize">{paymentIntent.status}</span>
+                </div>
+              </div>
+
+              {paymentIntent.status === 'pending' && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Waiting for payment...
+                </div>
               )}
-            </Button>
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-          </div>
+            </>
+          )}
+
+          <Button variant="outline" onClick={onClose} className="w-full">
+            Close
+          </Button>
         </div>
       </div>
     </div>

@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import Developer from "./pages/Developer";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
+import ApiTest from "./pages/ApiTest";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,11 @@ const App = () => (
             <Route path="/help" element={
               <ProtectedRoute>
                 <Help />
+              </ProtectedRoute>
+            } />
+            <Route path="/api-test" element={
+              <ProtectedRoute>
+                <ApiTest />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

@@ -1,22 +1,13 @@
 import { ReactNode } from "react";
 import { LeftNav } from "./LeftNav";
-import { Navigate } from "react-router-dom";
-import { useAppStore } from "@/lib/store";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { isAuthenticated, isOnboarded } = useAppStore();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isOnboarded) {
-    return <Navigate to="/onboarding" replace />;
-  }
+  // Authentication is handled by ProtectedRoute wrapper
+  // No need to check here to avoid redirect loops
 
   return (
     <div className="min-h-screen flex w-full bg-background">

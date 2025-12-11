@@ -39,7 +39,7 @@ export default function Auth() {
       const from = (location.state as any)?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
-  }, [user, navigate, location]);
+  }, [user, navigate, location.state]);
 
   // Check URL params for mode
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function Auth() {
     const urlMode = params.get('mode');
     if (urlMode === 'signup') setMode('signup');
     if (urlMode === 'forgot') setMode('forgot');
-  }, [location]);
+  }, [location.search]);
 
   const validateForm = () => {
     setError(null);

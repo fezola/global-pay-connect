@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.submit-kyb]
 verify_jwt = false
+
+[functions.create-payment-intent]
+verify_jwt = true
+
+[functions.monitor-blockchain]
+verify_jwt = false
+
+[functions.settle-payment]
+verify_jwt = false
+
+[functions.deliver-webhooks]
+verify_jwt = false
