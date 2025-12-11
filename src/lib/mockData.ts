@@ -43,8 +43,12 @@ export interface Merchant {
   businessType: string;
   website?: string;
   apiKey: string;
+  apiKeyLive?: string;
   webhookUrl?: string;
   webhookSecret?: string;
+  productionEnabled?: boolean;
+  kybStatus?: 'pending' | 'queued' | 'in_progress' | 'verified' | 'rejected';
+  twoFactorEnabled?: boolean;
   createdAt: string;
 }
 
@@ -148,3 +152,11 @@ export const mockMerchant: Merchant = {
   webhookSecret: 'whsec_1a2b3c4d5e6f',
   createdAt: '2024-01-01T00:00:00Z',
 };
+
+export const mockCustomers = [
+  { id: 'cus_001', email: 'alice@email.com', name: 'Alice Johnson', phone: '+1 555-0101', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString() },
+  { id: 'cus_002', email: 'bob@company.io', name: 'Bob Smith', phone: '+1 555-0102', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString() },
+  { id: 'cus_003', email: 'carol@startup.co', name: 'Carol Williams', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString() },
+  { id: 'cus_004', email: 'dan@enterprise.com', name: 'Dan Brown', phone: '+1 555-0104', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString() },
+  { id: 'cus_005', email: 'eve@web3.xyz', name: 'Eve Davis', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString() },
+];
