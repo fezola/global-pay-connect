@@ -8,6 +8,14 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Payouts from "./pages/Payouts";
+import Customers from "./pages/Customers";
+import Business from "./pages/Business";
+import Compliance from "./pages/Compliance";
+import Billing from "./pages/Billing";
+import Team from "./pages/Team";
+import Integrations from "./pages/Integrations";
+import Reports from "./pages/Reports";
+import Security from "./pages/Security";
 import Settings from "./pages/Settings";
 import Developer from "./pages/Developer";
 import Help from "./pages/Help";
@@ -28,6 +36,14 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/payouts" element={<Payouts />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/business" element={<Business />} />
+          <Route path="/compliance" element={<Compliance />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/team" element={<Team />} />
+          <Route path="/integrations" element={<Integrations />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/security" element={<Security />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/dev" element={<Developer />} />
           <Route path="/help" element={<Help />} />
