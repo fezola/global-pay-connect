@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/hooks/useAuth";
 import { Copy, Check, ArrowRight } from "lucide-react";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useState } from "react";
 
 const countries = [
   { code: "US", name: "United States" },
@@ -38,23 +39,20 @@ const businessTypes = [
 ];
 
 export default function Onboarding() {
-  const { isAuthenticated, isOnboarded, createMerchant } = useAppStore();
+  const { isOnboarded, createMerchant } = useAppStore();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: "",
     country: "",
-    email: "",
+    email: user?.email || "",
     businessType: "",
     website: "",
   });
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
 
   if (isOnboarded) {
     return <Navigate to="/dashboard" replace />;
@@ -66,7 +64,10 @@ export default function Onboarding() {
 
     await new Promise((r) => setTimeout(r, 500));
 
-    const key = createMerchant(formData);
+    const key = createMerchant({
+      ...formData,
+      email: formData.email || user?.email || '',
+    });
     setApiKey(key);
     setLoading(false);
   };

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 
@@ -52,9 +53,17 @@ const devNavItems = [
 
 export function LeftNav() {
   const location = useLocation();
-  const { merchant, logout } = useAppStore();
+  const navigate = useNavigate();
+  const { merchant } = useAppStore();
+  const { signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    setMobileOpen(false);
+    navigate('/auth');
+  };
 
   const renderNavItem = (item: { label: string; path: string; icon: any; badge?: string }) => {
     const isActive = location.pathname === item.path;
@@ -186,10 +195,7 @@ export function LeftNav() {
             Help
           </Link>
           <button
-            onClick={() => {
-              logout();
-              setMobileOpen(false);
-            }}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
           >
             <LogOut className="h-4 w-4" />
