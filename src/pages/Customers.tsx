@@ -2,7 +2,6 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
   Search, 
@@ -11,6 +10,7 @@ import {
   Phone,
   Calendar,
   User,
+  Loader2,
 } from "lucide-react";
 import {
   Table,
@@ -36,40 +36,36 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useAppStore } from "@/lib/store";
-import { useToast } from "@/hooks/use-toast";
-import { mockCustomers } from "@/lib/mockData";
+import { useCustomers } from "@/hooks/useCustomers";
 
 export default function Customers() {
-  const { customers, addCustomer, removeCustomer } = useAppStore();
-  const { toast } = useToast();
+  const { customers, loading, addCustomer, removeCustomer } = useCustomers();
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ email: "", name: "", phone: "" });
+  const [isAdding, setIsAdding] = useState(false);
 
-  // Combine store customers with mock customers for demo
-  const allCustomers = customers.length > 0 ? customers : mockCustomers;
-  
-  const filteredCustomers = allCustomers.filter(
+  const filteredCustomers = customers.filter(
     (c) =>
       c.email.toLowerCase().includes(search.toLowerCase()) ||
       c.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAddCustomer = () => {
-    if (!newCustomer.email) {
-      toast({ title: "Error", description: "Email is required", variant: "destructive" });
-      return;
+  const handleAddCustomer = async () => {
+    if (!newCustomer.email) return;
+    
+    setIsAdding(true);
+    const { error } = await addCustomer(newCustomer);
+    setIsAdding(false);
+    
+    if (!error) {
+      setNewCustomer({ email: "", name: "", phone: "" });
+      setIsAddOpen(false);
     }
-    addCustomer(newCustomer);
-    setNewCustomer({ email: "", name: "", phone: "" });
-    setIsAddOpen(false);
-    toast({ title: "Customer added", description: "New customer has been created." });
   };
 
-  const handleRemoveCustomer = (id: string) => {
-    removeCustomer(id);
-    toast({ title: "Customer removed", description: "Customer has been deleted." });
+  const handleRemoveCustomer = async (id: string) => {
+    await removeCustomer(id);
   };
 
   return (
@@ -140,87 +136,96 @@ export default function Customers() {
               <Button variant="outline" onClick={() => setIsAddOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddCustomer}>Add Customer</Button>
+              <Button onClick={handleAddCustomer} disabled={isAdding || !newCustomer.email}>
+                {isAdding && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Add Customer
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCustomers.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No customers found
-                </TableCell>
+                <TableHead>Customer</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
-            ) : (
-              filteredCustomers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="font-medium">{customer.name || "—"}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" />
-                      {customer.email}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {customer.phone ? (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        {customer.phone}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {new Date(customer.createdAt).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Create Invoice</DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleRemoveCustomer(customer.id)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No customers found
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="font-medium">{customer.name || "—"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5" />
+                        {customer.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {customer.phone ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5" />
+                          {customer.phone}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {new Date(customer.created_at).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          <DropdownMenuItem>Create Invoice</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleRemoveCustomer(customer.id)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </DashboardLayout>
   );

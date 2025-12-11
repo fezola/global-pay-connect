@@ -4,16 +4,21 @@ import { PayoutForm } from "@/components/PayoutForm";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/lib/store";
-import { ArrowUpRight, Wallet } from "lucide-react";
+import { usePayouts } from "@/hooks/usePayouts";
+import { useBalances } from "@/hooks/useBalances";
+import { ArrowUpRight, Wallet, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Payouts() {
-  const { payouts, balances } = useAppStore();
+  const { payouts, loading: payoutsLoading } = usePayouts();
+  const { balances, formatBalance, loading: balancesLoading } = useBalances();
   const [showPayoutForm, setShowPayoutForm] = useState(false);
 
   const usdcBalance = balances.find((b) => b.currency === "USDC");
-  const maxPayout = usdcBalance ? parseFloat(usdcBalance.total.replace(",", "")) : 0;
+  const formattedBalance = usdcBalance ? formatBalance(usdcBalance) : null;
+  const maxPayout = usdcBalance ? usdcBalance.total : 0;
+
+  const loading = payoutsLoading || balancesLoading;
 
   return (
     <DashboardLayout>
@@ -35,7 +40,13 @@ export default function Payouts() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Available for payout</p>
-            <p className="text-3xl font-semibold mt-1">{usdcBalance?.total || "0.00"} USDC</p>
+            <p className="text-3xl font-semibold mt-1">
+              {loading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                `${formattedBalance?.total || "0.00"} USDC`
+              )}
+            </p>
           </div>
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Wallet className="h-6 w-6 text-primary" />
@@ -48,7 +59,11 @@ export default function Payouts() {
         <div className="p-4 border-b border-border">
           <h2 className="font-semibold">Payout History</h2>
         </div>
-        {payouts.length > 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : payouts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -75,7 +90,7 @@ export default function Payouts() {
                           {payout.destination}
                         </p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {payout.destinationType}
+                          {payout.destination_type}
                         </p>
                       </div>
                     </td>
@@ -83,7 +98,7 @@ export default function Payouts() {
                       {payout.fee} {payout.currency}
                     </td>
                     <td className="p-4 text-sm text-muted-foreground">
-                      {format(new Date(payout.createdAt), "MMM d, yyyy")}
+                      {format(new Date(payout.created_at), "MMM d, yyyy")}
                     </td>
                   </tr>
                 ))}
