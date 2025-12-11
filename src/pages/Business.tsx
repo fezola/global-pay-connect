@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
+import { useRealtimeKYB } from "@/hooks/useRealtimeKYB";
 import { cn } from "@/lib/utils";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { countries as countryList } from "@/lib/countries";
@@ -53,6 +54,9 @@ const documentTypes = [
 ];
 
 export default function Business() {
+  // Enable real-time KYB status updates
+  useRealtimeKYB();
+  
   const { 
     business, 
     businessOwners, 
