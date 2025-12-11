@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { mockBalances, mockTransactions, mockPayouts, mockMerchant, type Balance, type Transaction, type Payout, type Merchant } from './mockData';
+import { mockBalances, mockTransactions, mockPayouts, type Balance, type Transaction, type Payout, type Merchant } from './mockData';
+import type { Tables } from '@/integrations/supabase/types';
+
+type MerchantRow = Tables<'merchants'>;
 
 export interface Business {
   id: string;
@@ -85,6 +88,7 @@ interface AppState {
   login: (email: string) => void;
   logout: () => void;
   createMerchant: (data: Partial<Merchant>) => string;
+  setMerchantFromDb: (data: MerchantRow) => void;
   addTransaction: (tx: Transaction) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   addPayout: (payout: Payout) => void;
@@ -175,6 +179,32 @@ export const useAppStore = create<AppState>()(
           payouts: mockPayouts,
         });
         return apiKey;
+      },
+      
+      setMerchantFromDb: (data: MerchantRow) => {
+        const merchant: Merchant = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          country: data.country,
+          businessType: data.business_type || undefined,
+          website: data.website || undefined,
+          apiKey: data.api_key_sandbox || '',
+          apiKeyLive: data.api_key_live || undefined,
+          productionEnabled: data.production_enabled || false,
+          kybStatus: data.kyb_status || 'pending',
+          twoFactorEnabled: data.two_factor_enabled || false,
+          webhookUrl: data.webhook_url || undefined,
+          webhookSecret: data.webhook_secret || undefined,
+          createdAt: data.created_at || new Date().toISOString(),
+        };
+        set({
+          merchant,
+          isOnboarded: true,
+          balances: mockBalances,
+          transactions: mockTransactions,
+          payouts: mockPayouts,
+        });
       },
 
       addTransaction: (tx: Transaction) => {
