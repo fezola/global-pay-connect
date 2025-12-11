@@ -13,6 +13,7 @@ import { ApiKeyCard } from "@/components/dashboard/ApiKeyCard";
 import { WebhookStatus } from "@/components/dashboard/WebhookStatus";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
+import { useRealtimeKYB } from "@/hooks/useRealtimeKYB";
 import { 
   Wallet, 
   ArrowDownLeft, 
@@ -26,6 +27,8 @@ import {
 import type { Transaction } from "@/lib/mockData";
 
 export default function Dashboard() {
+  // Enable real-time KYB status updates
+  useRealtimeKYB();
   const { merchant, balances, transactions, regenerateApiKey } = useAppStore();
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPayout, setShowPayout] = useState(false);
