@@ -11,7 +11,6 @@ import {
   Wallet, 
   CheckCircle2,
   ChevronRight,
-  Upload,
   Plus,
   Trash2,
   AlertTriangle,
@@ -27,6 +26,8 @@ import {
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { DocumentUpload } from "@/components/DocumentUpload";
+import { countries as countryList } from "@/lib/countries";
 
 const steps = [
   { id: 1, label: "Company Info", icon: Building2 },
@@ -43,12 +44,12 @@ const entityTypes = [
   { value: "sole_proprietor", label: "Sole Proprietorship" },
 ];
 
-const countries = [
-  { value: "US", label: "United States" },
-  { value: "GB", label: "United Kingdom" },
-  { value: "DE", label: "Germany" },
-  { value: "SG", label: "Singapore" },
-  { value: "AE", label: "United Arab Emirates" },
+const documentTypes = [
+  { type: "incorporation", label: "Certificate of Incorporation", desc: "Official incorporation documents" },
+  { type: "articles", label: "Articles of Association", desc: "Company bylaws or operating agreement" },
+  { type: "proof_of_address", label: "Proof of Address", desc: "Recent utility bill or bank statement" },
+  { type: "tax_doc", label: "Tax Documents", desc: "Tax registration or recent filing" },
+  { type: "id_document", label: "Director ID Document", desc: "Passport or government-issued ID" },
 ];
 
 export default function Business() {
@@ -96,7 +97,7 @@ export default function Business() {
     type: "multisig" as const,
   });
   
-  const [documents, setDocuments] = useState<{ type: string; name: string }[]>([]);
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, { name: string; url: string }>>({});
 
   const handleSaveCompanyInfo = () => {
     if (!formData.legalName || !formData.entityType) {
@@ -144,10 +145,11 @@ export default function Business() {
     toast({ title: "Owner added", description: "Beneficial owner added successfully" });
   };
 
-  const handleFileUpload = (type: string) => {
-    // Simulate file upload
-    setDocuments([...documents, { type, name: `${type}_document.pdf` }]);
-    toast({ title: "Document uploaded", description: `${type} document uploaded successfully` });
+  const handleDocumentUpload = (docType: string, url: string, filename: string) => {
+    setUploadedDocs(prev => ({
+      ...prev,
+      [docType]: { name: filename, url }
+    }));
   };
 
   const handleAddWallet = () => {
@@ -285,10 +287,13 @@ export default function Business() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
+                    <SelectContent className="max-h-[300px]">
+                      {countryList.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>
+                          <span className="flex items-center gap-2">
+                            <span>{c.flag}</span>
+                            <span>{c.name}</span>
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -454,49 +459,17 @@ export default function Business() {
               </p>
               
               <div className="space-y-4">
-                {[
-                  { type: "incorporation", label: "Certificate of Incorporation", desc: "Official incorporation documents" },
-                  { type: "articles", label: "Articles of Association", desc: "Company bylaws or operating agreement" },
-                  { type: "proof_of_address", label: "Proof of Address", desc: "Recent utility bill or bank statement" },
-                  { type: "tax_doc", label: "Tax Documents", desc: "Tax registration or recent filing" },
-                ].map((doc) => {
-                  const isUploaded = documents.some((d) => d.type === doc.type);
-                  return (
-                    <div
-                      key={doc.type}
-                      className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border",
-                        isUploaded ? "border-success bg-success/5" : "border-dashed border-border"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center",
-                          isUploaded ? "bg-success/10" : "bg-muted"
-                        )}>
-                          {isUploaded ? (
-                            <CheckCircle2 className="h-5 w-5 text-success" />
-                          ) : (
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{doc.label}</p>
-                          <p className="text-sm text-muted-foreground">{doc.desc}</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant={isUploaded ? "outline" : "default"}
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => handleFileUpload(doc.type)}
-                      >
-                        <Upload className="h-4 w-4" />
-                        {isUploaded ? "Replace" : "Upload"}
-                      </Button>
-                    </div>
-                  );
-                })}
+                {documentTypes.map((doc) => (
+                  <DocumentUpload
+                    key={doc.type}
+                    businessId={business?.id || 'temp'}
+                    docType={doc.type}
+                    label={doc.label}
+                    description={doc.desc}
+                    existingFile={uploadedDocs[doc.type] || null}
+                    onUploadComplete={(url, filename) => handleDocumentUpload(doc.type, url, filename)}
+                  />
+                ))}
               </div>
               
               <div className="flex gap-2 mt-6">
@@ -658,14 +631,14 @@ export default function Business() {
                 </div>
                 
                 <div>
-                  <h3 className="font-medium mb-2">Documents ({documents.length})</h3>
+                  <h3 className="font-medium mb-2">Documents ({Object.keys(uploadedDocs).length})</h3>
                   <div className="bg-muted rounded-lg p-4">
-                    {documents.length === 0 ? (
+                    {Object.keys(uploadedDocs).length === 0 ? (
                       <p className="text-muted-foreground text-sm">No documents uploaded</p>
                     ) : (
                       <div className="space-y-1">
-                        {documents.map((doc, idx) => (
-                          <p key={idx} className="text-sm flex items-center gap-2">
+                        {Object.entries(uploadedDocs).map(([type, doc]) => (
+                          <p key={type} className="text-sm flex items-center gap-2">
                             <CheckCircle2 className="h-4 w-4 text-success" />
                             {doc.name}
                           </p>
@@ -739,7 +712,7 @@ export default function Business() {
               {[
                 { label: 'Company info', done: !!business },
                 { label: 'Owners added', done: businessOwners.length > 0 },
-                { label: 'Documents uploaded', done: documents.length >= 2 },
+                { label: 'Documents uploaded', done: Object.keys(uploadedDocs).length >= 2 },
                 { label: 'Wallet verified', done: businessWallets.some(w => w.proofVerified) },
                 { label: 'KYB submitted', done: business?.status !== 'draft' },
               ].map((item, idx) => (
