@@ -12,8 +12,11 @@ import { CurrencyBalance } from "@/components/dashboard/CurrencyBalance";
 import { ApiKeyCard } from "@/components/dashboard/ApiKeyCard";
 import { WebhookStatus } from "@/components/dashboard/WebhookStatus";
 import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/lib/store";
+import { useMerchant } from "@/hooks/useMerchant";
+import { useTransactions, type Transaction as DbTransaction } from "@/hooks/useTransactions";
+import { useBalances } from "@/hooks/useBalances";
 import { useRealtimeKYB } from "@/hooks/useRealtimeKYB";
+import { useProfile } from "@/hooks/useProfile";
 import { 
   Wallet, 
   ArrowDownLeft, 
@@ -22,30 +25,60 @@ import {
   TrendingUp,
   ExternalLink,
   Bell,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 import type { Transaction } from "@/lib/mockData";
 
 export default function Dashboard() {
   // Enable real-time KYB status updates
   useRealtimeKYB();
-  const { merchant, balances, transactions, regenerateApiKey } = useAppStore();
+  
+  const { merchant } = useMerchant();
+  const { profile } = useProfile();
+  const { transactions: dbTransactions, loading: txLoading } = useTransactions();
+  const { balances: dbBalances, formatBalance, loading: balLoading } = useBalances();
+  
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPayout, setShowPayout] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [activeCurrency, setActiveCurrency] = useState("USDC");
 
+  // Transform DB transactions to match the existing Transaction type
+  const transactions: Transaction[] = dbTransactions.map((tx: DbTransaction) => ({
+    id: tx.id,
+    status: tx.status,
+    type: tx.type,
+    amount: tx.amount.toString(),
+    currency: tx.currency,
+    description: tx.description || '',
+    createdAt: tx.created_at,
+    updatedAt: tx.updated_at,
+    txHash: tx.tx_hash || undefined,
+    auditLogs: []
+  }));
+
+  // Transform DB balances to match display format
+  const balances = dbBalances.map(formatBalance);
+
   const recentTransactions = transactions.slice(0, 10);
-  const usdcBalance = balances.find((b) => b.currency === "USDC");
-  const maxPayout = usdcBalance ? parseFloat(usdcBalance.total.replace(",", "")) : 0;
+  const usdcBalance = dbBalances.find((b) => b.currency === "USDC");
+  const maxPayout = usdcBalance ? usdcBalance.total : 0;
 
   // Calculate stats
-  const totalBalance = balances.reduce((sum, b) => sum + parseFloat(b.total.replace(",", "")), 0);
+  const totalBalance = dbBalances.reduce((sum, b) => sum + b.total, 0);
   const settledCount = transactions.filter(t => t.status.startsWith("settled")).length;
   const pendingCount = transactions.filter(t => t.status === "pending").length;
   const successRate = transactions.length > 0 
     ? Math.round((settledCount / transactions.length) * 100) 
     : 0;
+
+  const loading = txLoading || balLoading;
+
+  const handleRegenerateApiKey = () => {
+    // This would call the API to regenerate the key
+    console.log("Regenerate API key");
+  };
 
   return (
     <DashboardLayout>
@@ -59,7 +92,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-muted-foreground">
-            Welcome back, {merchant?.name || "Developer"}
+            Welcome back, {profile?.full_name || merchant?.name || "Developer"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -78,7 +111,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatsCard
           title="Total Balance"
-          value={`$${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+          value={loading ? "..." : `$${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
           change={12.5}
           trend="up"
           icon={<Wallet className="h-5 w-5" />}
@@ -92,14 +125,14 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Transactions"
-          value={transactions.length.toString()}
+          value={loading ? "..." : transactions.length.toString()}
           change={-2.4}
           trend="down"
           icon={<Activity className="h-5 w-5" />}
         />
         <StatsCard
           title="Success Rate"
-          value={`${successRate}%`}
+          value={loading ? "..." : `${successRate}%`}
           change={1.2}
           trend="up"
           icon={<ArrowUpRight className="h-5 w-5" />}
@@ -170,10 +203,16 @@ export default function Dashboard() {
                 </a>
               </Button>
             </div>
-            <RecentActivity 
-              transactions={recentTransactions} 
-              onSelect={(tx) => setSelectedTx(tx)}
-            />
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <RecentActivity 
+                transactions={recentTransactions} 
+                onSelect={(tx) => setSelectedTx(tx)}
+              />
+            )}
           </div>
         </div>
 
@@ -187,27 +226,33 @@ export default function Dashboard() {
                 Add Currency
               </Button>
             </div>
-            <div className="space-y-3">
-              {balances.map((balance) => (
-                <CurrencyBalance
-                  key={balance.currency}
-                  balance={balance}
-                  isActive={balance.currency === activeCurrency}
-                  onClick={() => setActiveCurrency(balance.currency)}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {balances.map((balance) => (
+                  <CurrencyBalance
+                    key={balance.currency}
+                    balance={balance}
+                    isActive={balance.currency === activeCurrency}
+                    onClick={() => setActiveCurrency(balance.currency)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* API Key */}
           <ApiKeyCard 
             apiKey={merchant?.apiKey || ""} 
-            onRegenerate={regenerateApiKey}
+            onRegenerate={handleRegenerateApiKey}
           />
 
           {/* Webhook Status */}
           <WebhookStatus 
-            url={merchant?.webhookUrl}
+            url={merchant?.webhookUrl || undefined}
             status={merchant?.webhookUrl ? "active" : "inactive"}
             lastPing="2 minutes ago"
           />

@@ -12,16 +12,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAppStore } from "@/lib/store";
-import { Download, Search, Inbox } from "lucide-react";
+import { useTransactions, type Transaction as DbTransaction } from "@/hooks/useTransactions";
+import { Download, Search, Inbox, Loader2 } from "lucide-react";
 import type { Transaction } from "@/lib/mockData";
 
 export default function Transactions() {
-  const { transactions } = useAppStore();
+  const { transactions: dbTransactions, loading } = useTransactions();
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+
+  // Transform DB transactions to match the existing Transaction type
+  const transactions: Transaction[] = dbTransactions.map((tx: DbTransaction) => ({
+    id: tx.id,
+    status: tx.status,
+    type: tx.type,
+    amount: tx.amount.toString(),
+    currency: tx.currency,
+    description: tx.description || '',
+    createdAt: tx.created_at,
+    updatedAt: tx.updated_at,
+    txHash: tx.tx_hash || undefined,
+    auditLogs: [] // Audit logs would come from a separate table
+  }));
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch = tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -106,7 +120,11 @@ export default function Transactions() {
       {/* Transactions List */}
       <div className="bg-card rounded-lg border border-border">
         <div className="divide-y divide-border">
-          {filteredTransactions.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredTransactions.length > 0 ? (
             filteredTransactions.map((tx) => (
               <TransactionRow
                 key={tx.id}

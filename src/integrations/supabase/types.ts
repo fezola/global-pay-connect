@@ -111,6 +111,44 @@ export type Database = {
           },
         ]
       }
+      balances: {
+        Row: {
+          currency: string
+          id: string
+          merchant_id: string
+          offchain: number
+          onchain: number
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          currency: string
+          id?: string
+          merchant_id: string
+          offchain?: number
+          onchain?: number
+          total?: number
+          updated_at?: string | null
+        }
+        Update: {
+          currency?: string
+          id?: string
+          merchant_id?: string
+          offchain?: number
+          onchain?: number
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balances_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_documents: {
         Row: {
           business_id: string
@@ -524,6 +562,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payouts: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          destination: string
+          destination_type: string
+          fee: number | null
+          id: string
+          merchant_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          destination: string
+          destination_type: string
+          fee?: number | null
+          id?: string
+          merchant_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          destination?: string
+          destination_type?: string
+          fee?: number | null
+          id?: string
+          merchant_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string | null
@@ -573,6 +658,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -669,6 +781,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "team_members_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          description: string | null
+          id: string
+          merchant_id: string
+          status: string
+          tx_hash: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          merchant_id: string
+          status?: string
+          tx_hash?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          merchant_id?: string
+          status?: string
+          tx_hash?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
