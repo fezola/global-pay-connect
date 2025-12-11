@@ -1,149 +1,233 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { BalanceCard } from "@/components/BalanceCard";
-import { TransactionRow } from "@/components/TransactionRow";
 import { KlyrCheckout } from "@/components/KlyrCheckout";
 import { PayoutForm } from "@/components/PayoutForm";
 import { TransactionDetail } from "@/components/TransactionDetail";
-import { EmptyState } from "@/components/EmptyState";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { BalanceChart } from "@/components/dashboard/BalanceChart";
+import { VolumeChart } from "@/components/dashboard/VolumeChart";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { CurrencyBalance } from "@/components/dashboard/CurrencyBalance";
+import { ApiKeyCard } from "@/components/dashboard/ApiKeyCard";
+import { WebhookStatus } from "@/components/dashboard/WebhookStatus";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
-import { ArrowDownLeft, ArrowUpRight, Key, Copy, Check, Inbox } from "lucide-react";
+import { 
+  Wallet, 
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  Activity, 
+  TrendingUp,
+  ExternalLink,
+  Bell,
+  ChevronRight
+} from "lucide-react";
 import type { Transaction } from "@/lib/mockData";
 
 export default function Dashboard() {
-  const { merchant, balances, transactions } = useAppStore();
+  const { merchant, balances, transactions, regenerateApiKey } = useAppStore();
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPayout, setShowPayout] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
+  const [activeCurrency, setActiveCurrency] = useState("USDC");
 
   const recentTransactions = transactions.slice(0, 10);
   const usdcBalance = balances.find((b) => b.currency === "USDC");
   const maxPayout = usdcBalance ? parseFloat(usdcBalance.total.replace(",", "")) : 0;
 
-  const copyApiKey = () => {
-    if (merchant?.apiKey) {
-      navigator.clipboard.writeText(merchant.apiKey);
-      setCopiedKey(true);
-      setTimeout(() => setCopiedKey(false), 2000);
-    }
-  };
+  // Calculate stats
+  const totalBalance = balances.reduce((sum, b) => sum + parseFloat(b.total.replace(",", "")), 0);
+  const settledCount = transactions.filter(t => t.status.startsWith("settled")).length;
+  const pendingCount = transactions.filter(t => t.status === "pending").length;
+  const successRate = transactions.length > 0 
+    ? Math.round((settledCount / transactions.length) * 100) 
+    : 0;
 
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold">Overview</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {merchant?.name} - Sandbox Environment
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+              Sandbox
+            </span>
+          </div>
+          <p className="text-muted-foreground">
+            Welcome back, {merchant?.name || "Developer"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Notifications</span>
+          </Button>
           <Button onClick={() => setShowCheckout(true)} className="gap-2">
             <ArrowDownLeft className="h-4 w-4" />
             Receive Test USDC
           </Button>
-          <Button variant="outline" onClick={() => setShowPayout(true)} className="gap-2">
-            <ArrowUpRight className="h-4 w-4" />
-            Request Payout
-          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Balance Cards */}
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {balances.map((balance) => (
-              <BalanceCard
-                key={balance.currency}
-                {...balance}
-                onReceive={() => setShowCheckout(true)}
-              />
-            ))}
-          </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatsCard
+          title="Total Balance"
+          value={`$${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+          change={12.5}
+          trend="up"
+          icon={<Wallet className="h-5 w-5" />}
+        />
+        <StatsCard
+          title="Monthly Volume"
+          value="$12,450"
+          change={8.2}
+          trend="up"
+          icon={<TrendingUp className="h-5 w-5" />}
+        />
+        <StatsCard
+          title="Transactions"
+          value={transactions.length.toString()}
+          change={-2.4}
+          trend="down"
+          icon={<Activity className="h-5 w-5" />}
+        />
+        <StatsCard
+          title="Success Rate"
+          value={`${successRate}%`}
+          change={1.2}
+          trend="up"
+          icon={<ArrowUpRight className="h-5 w-5" />}
+        />
+      </div>
 
-          {/* Transactions */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h2 className="font-semibold">Recent Transactions</h2>
-              <Button variant="ghost" size="sm" asChild>
-                <a href="/transactions">View all</a>
-              </Button>
-            </div>
-            <div className="divide-y divide-border">
-              {recentTransactions.length > 0 ? (
-                recentTransactions.map((tx) => (
-                  <TransactionRow
-                    key={tx.id}
-                    transaction={tx}
-                    onClick={() => setSelectedTx(tx)}
-                  />
-                ))
-              ) : (
-                <EmptyState
-                  icon={<Inbox className="h-6 w-6" />}
-                  title="No activity yet"
-                  description="Try 'Receive Test USDC' to seed your account."
-                  actionLabel="Receive Test USDC"
-                  onAction={() => setShowCheckout(true)}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Main Content - Left 2 columns */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Quick Actions */}
+          <QuickActions 
+            onReceive={() => setShowCheckout(true)} 
+            onPayout={() => setShowPayout(true)} 
+          />
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Settings */}
-          <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">Quick Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-muted-foreground">API Key</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <code className="flex-1 p-2 bg-muted rounded text-xs font-mono truncate">
-                    {merchant?.apiKey.substring(0, 20)}...
-                  </code>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyApiKey}>
-                    {copiedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Balance Over Time */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold">Balance History</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Last 30 days</p>
+                </div>
+                <Button variant="ghost" size="sm" className="text-xs gap-1">
+                  View Report
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
+              <BalanceChart />
+            </div>
+
+            {/* Transaction Volume */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold">Transaction Volume</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">This week</p>
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    Deposits
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+                    Payouts
+                  </span>
                 </div>
               </div>
+              <VolumeChart />
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between p-5 border-b border-border">
               <div>
-                <label className="text-sm text-muted-foreground">Webhook URL</label>
-                <p className="text-sm mt-1 font-mono truncate">
-                  {merchant?.webhookUrl || "Not configured"}
+                <h3 className="font-semibold">Recent Activity</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pendingCount} pending, {settledCount} settled
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="w-full gap-2" asChild>
-                <a href="/settings">
-                  <Key className="h-4 w-4" />
-                  Manage Settings
+              <Button variant="ghost" size="sm" className="text-xs gap-1" asChild>
+                <a href="/transactions">
+                  View All
+                  <ChevronRight className="h-3 w-3" />
                 </a>
               </Button>
             </div>
+            <RecentActivity 
+              transactions={recentTransactions} 
+              onSelect={(tx) => setSelectedTx(tx)}
+            />
+          </div>
+        </div>
+
+        {/* Sidebar - Right column */}
+        <div className="space-y-6">
+          {/* Currency Balances */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Balances</h3>
+              <Button variant="ghost" size="sm" className="text-xs">
+                Add Currency
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {balances.map((balance) => (
+                <CurrencyBalance
+                  key={balance.currency}
+                  balance={balance}
+                  isActive={balance.currency === activeCurrency}
+                  onClick={() => setActiveCurrency(balance.currency)}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Activity Feed */}
-          <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">Activity</h3>
-            <div className="space-y-3 text-sm">
-              {recentTransactions.slice(0, 5).map((tx) => (
-                <div key={tx.id} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5" />
-                  <div>
-                    <p className="text-foreground">{tx.description}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{tx.id}</p>
-                  </div>
-                </div>
+          {/* API Key */}
+          <ApiKeyCard 
+            apiKey={merchant?.apiKey || ""} 
+            onRegenerate={regenerateApiKey}
+          />
+
+          {/* Webhook Status */}
+          <WebhookStatus 
+            url={merchant?.webhookUrl}
+            status={merchant?.webhookUrl ? "active" : "inactive"}
+            lastPing="2 minutes ago"
+          />
+
+          {/* Quick Links */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="font-semibold mb-3">Quick Links</h3>
+            <div className="space-y-2">
+              {[
+                { label: "API Documentation", href: "/dev" },
+                { label: "Checkout Widget", href: "/dev#widget" },
+                { label: "Webhook Events", href: "/settings" },
+                { label: "Test Cards", href: "/help" },
+              ].map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
+                >
+                  <span className="text-sm">{link.label}</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </a>
               ))}
-              {recentTransactions.length === 0 && (
-                <p className="text-muted-foreground">No recent activity</p>
-              )}
             </div>
           </div>
         </div>
