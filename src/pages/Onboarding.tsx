@@ -5,12 +5,16 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/hooks/useAuth";
+import { useMerchant } from "@/hooks/useMerchant";
+import { countryGroups, countries } from "@/lib/countries";
 import { Copy, Check, ArrowRight } from "lucide-react";
 import {
   Dialog,
@@ -20,27 +24,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-
-const countries = [
-  { code: "US", name: "United States" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "DE", name: "Germany" },
-  { code: "FR", name: "France" },
-  { code: "SG", name: "Singapore" },
-  { code: "JP", name: "Japan" },
-];
+import { toast } from "sonner";
 
 const businessTypes = [
   { value: "software", label: "Software / SaaS" },
   { value: "ecommerce", label: "E-commerce" },
   { value: "marketplace", label: "Marketplace" },
   { value: "gaming", label: "Gaming" },
+  { value: "fintech", label: "Fintech" },
+  { value: "crypto", label: "Crypto / Web3" },
   { value: "other", label: "Other" },
 ];
 
 export default function Onboarding() {
-  const { isOnboarded, createMerchant } = useAppStore();
+  const { isOnboarded } = useAppStore();
   const { user } = useAuth();
+  const { createMerchant, loading: merchantLoading } = useMerchant();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -58,18 +57,26 @@ export default function Onboarding() {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const selectedCountry = countries.find(c => c.code === formData.country);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 500));
-
-    const key = createMerchant({
-      ...formData,
-      email: formData.email || user?.email || '',
-    });
-    setApiKey(key);
-    setLoading(false);
+    try {
+      const key = await createMerchant({
+        name: formData.name,
+        email: formData.email || user?.email || '',
+        country: formData.country,
+        businessType: formData.businessType,
+        website: formData.website || undefined,
+      });
+      setApiKey(key);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create merchant');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopy = () => {
@@ -120,13 +127,30 @@ export default function Onboarding() {
                 onValueChange={(v) => setFormData({ ...formData, country: v })}
               >
                 <SelectTrigger id="country">
-                  <SelectValue placeholder="Select country" />
+                  <SelectValue placeholder="Select country">
+                    {selectedCountry && (
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">{selectedCountry.flag}</span>
+                        <span>{selectedCountry.name}</span>
+                      </span>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {countries.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.name}
-                    </SelectItem>
+                <SelectContent className="max-h-[300px]">
+                  {countryGroups.map((group) => (
+                    <SelectGroup key={group.label}>
+                      <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {group.label}
+                      </SelectLabel>
+                      {group.countries.map((c) => (
+                        <SelectItem key={`${group.label}-${c.code}`} value={c.code}>
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">{c.flag}</span>
+                            <span>{c.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
@@ -176,7 +200,7 @@ export default function Onboarding() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-border">
-            <Button type="submit" className="w-full md:w-auto gap-2" disabled={loading}>
+            <Button type="submit" className="w-full md:w-auto gap-2" disabled={loading || merchantLoading}>
               {loading ? "Creating..." : "Create test merchant"}
               <ArrowRight className="h-4 w-4" />
             </Button>
