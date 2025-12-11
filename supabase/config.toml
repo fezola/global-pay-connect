@@ -1,1 +1,10 @@
 project_id = "crkhkzcscgoeyspaczux"
+
+[functions.wallet-nonce]
+verify_jwt = false
+
+[functions.prove-control]
+verify_jwt = false
+
+[functions.submit-kyb]
+verify_jwt = false
