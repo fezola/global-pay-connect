@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Shield, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Shield,
+  CheckCircle2,
+  Clock,
   AlertTriangle,
   FileText,
   Eye,
@@ -15,11 +15,19 @@ import {
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { PersonaVerification } from "@/components/PersonaVerification";
+import { useState } from "react";
 
 export default function Compliance() {
   const { merchant, business, businessOwners, businessWallets } = useAppStore();
+  const [showPersonaVerification, setShowPersonaVerification] = useState(false);
 
   const kybStatus = merchant?.kybStatus || 'pending';
+
+  const handleVerificationComplete = () => {
+    // Refresh merchant data
+    window.location.reload();
+  };
   
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -249,6 +257,17 @@ export default function Compliance() {
               </div>
             </div>
           </div>
+
+          {/* Persona Verification */}
+          {business && kybStatus !== 'verified' && (
+            <div className="bg-card rounded-lg border border-border p-4">
+              <h3 className="font-medium mb-3">Automated Verification</h3>
+              <PersonaVerification
+                businessId={business.id}
+                onComplete={handleVerificationComplete}
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="bg-card rounded-lg border border-border p-4">

@@ -4,12 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { EnvironmentModeProvider } from "@/hooks/useEnvironmentMode";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Payouts from "./pages/Payouts";
+import PayoutDestinations from "./pages/PayoutDestinations";
 import Customers from "./pages/Customers";
 import Business from "./pages/Business";
 import Compliance from "./pages/Compliance";
@@ -37,7 +39,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <EnvironmentModeProvider>
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
@@ -60,6 +63,11 @@ const App = () => (
             <Route path="/payouts" element={
               <ProtectedRoute>
                 <Payouts />
+              </ProtectedRoute>
+            } />
+            <Route path="/payout-destinations" element={
+              <ProtectedRoute>
+                <PayoutDestinations />
               </ProtectedRoute>
             } />
             <Route path="/customers" element={
@@ -130,7 +138,8 @@ const App = () => (
             <Route path="/multi-step-checkout" element={<MultiStepCheckoutDemo />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </EnvironmentModeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

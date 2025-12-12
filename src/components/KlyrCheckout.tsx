@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Copy, Check, Loader2 } from "lucide-react";
+import { X, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,8 @@ import { usePaymentIntents } from "@/hooks/usePaymentIntents";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentQRCode } from "@/components/PaymentQRCode";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEnvironmentMode } from "@/hooks/useEnvironmentMode";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface KlyrCheckoutProps {
   onClose: () => void;
@@ -20,6 +22,7 @@ export function KlyrCheckout({ onClose, onSuccess }: KlyrCheckoutProps) {
   const [paymentIntent, setPaymentIntent] = useState<any>(null);
   const { createPaymentIntent } = usePaymentIntents();
   const { toast } = useToast();
+  const { isTestMode } = useEnvironmentMode();
 
   const copyAddress = () => {
     if (paymentIntent?.payment_address) {
@@ -78,15 +81,33 @@ export function KlyrCheckout({ onClose, onSuccess }: KlyrCheckoutProps) {
     <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-card rounded-lg shadow-lg w-full max-w-md animate-fade-in">
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="text-lg font-semibold">
-            {paymentIntent ? 'Complete Payment' : 'Create Payment'}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">
+              {paymentIntent ? 'Complete Payment' : 'Create Payment'}
+            </h3>
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+              isTestMode
+                ? "bg-warning/10 text-warning"
+                : "bg-success/10 text-success"
+            }`}>
+              {isTestMode ? "Test" : "Live"}
+            </span>
+          </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="p-6 space-y-4">
+          {isTestMode && (
+            <Alert className="border-warning/50 bg-warning/5">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-xs">
+                Test mode: No real funds will be processed
+              </AlertDescription>
+            </Alert>
+          )}
+
           {!paymentIntent ? (
             <>
               <div className="space-y-2">

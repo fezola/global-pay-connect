@@ -6,14 +6,24 @@ import { useToast } from '@/hooks/use-toast';
 export interface Payout {
   id: string;
   merchant_id: string;
-  status: 'pending' | 'processing' | 'paid' | 'failed';
+  status: 'pending' | 'approved' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rejected';
   amount: number;
   currency: string;
-  destination: string;
-  destination_type: 'onchain' | 'bank';
-  fee: number;
+  destination_address: string;
+  destination_type: 'wallet' | 'bank';
+  fee_amount: number;
+  net_amount: number;
+  tx_signature?: string;
+  chain?: string;
+  requires_approval: boolean;
+  approved_by?: string;
+  approved_at?: string;
+  error_message?: string;
   created_at: string;
   updated_at: string;
+  // Legacy fields for backward compatibility
+  destination?: string;
+  fee?: number;
 }
 
 export function usePayouts() {
@@ -113,9 +123,102 @@ export function usePayouts() {
     };
   }, [merchant?.id]);
 
+  const approvePayout = async (payoutId: string, notes?: string) => {
+    if (!merchant?.id) throw new Error('No merchant');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('approve-payout', {
+        body: { payout_id: payoutId, notes },
+      });
+
+      if (error) throw error;
+
+      await fetchPayouts();
+
+      toast({
+        title: 'Payout approved',
+        description: 'The payout has been approved and will be processed shortly'
+      });
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: 'Error approving payout',
+        description: error.message,
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  };
+
+  const rejectPayout = async (payoutId: string, reason: string) => {
+    if (!merchant?.id) throw new Error('No merchant');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reject-payout', {
+        body: { payout_id: payoutId, reason },
+      });
+
+      if (error) throw error;
+
+      await fetchPayouts();
+
+      toast({
+        title: 'Payout rejected',
+        description: 'The payout request has been rejected'
+      });
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: 'Error rejecting payout',
+        description: error.message,
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  };
+
+  const cancelPayout = async (payoutId: string) => {
+    if (!merchant?.id) throw new Error('No merchant');
+
+    try {
+      const { error } = await supabase
+        .from('payouts')
+        .update({ status: 'cancelled' })
+        .eq('id', payoutId)
+        .eq('merchant_id', merchant.id)
+        .in('status', ['pending', 'approved']);
+
+      if (error) throw error;
+
+      await fetchPayouts();
+
+      toast({
+        title: 'Payout cancelled',
+        description: 'The payout has been cancelled'
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error cancelling payout',
+        description: error.message,
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchPayouts();
   }, [fetchPayouts]);
 
-  return { payouts, loading, createPayout, refetch: fetchPayouts };
+  return {
+    payouts,
+    loading,
+    createPayout,
+    approvePayout,
+    rejectPayout,
+    cancelPayout,
+    refetch: fetchPayouts
+  };
 }

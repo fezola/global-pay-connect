@@ -89,17 +89,22 @@ serve(async (req) => {
       });
     }
 
+    // Check if Persona is configured
+    const PERSONA_API_KEY = Deno.env.get('PERSONA_API_KEY');
+    const usePersona = !!PERSONA_API_KEY;
+
     // Create KYB job
     const { data: kybJob, error: kybError } = await supabase
       .from('kyb_jobs')
       .insert({
         business_id: businessId,
-        vendor: 'klyr-internal',
+        vendor: usePersona ? 'persona' : 'klyr-internal',
         status: 'queued',
         vendor_payload: {
           submitted_at: new Date().toISOString(),
           documents_count: business.business_documents?.length || 0,
           owners_count: business.business_owners?.length || 0,
+          use_persona: usePersona,
         }
       })
       .select()
@@ -131,12 +136,19 @@ serve(async (req) => {
     console.log(`KYB job ${kybJob.id} created for business ${businessId}`);
 
     // Trigger async KYB processing (fire and forget)
-    processKybAsync(supabase, kybJob.id, businessId, business.merchant_id);
+    // If Persona is configured, this will wait for webhook
+    // Otherwise, use mock verification
+    if (!usePersona) {
+      processKybAsync(supabase, kybJob.id, businessId, business.merchant_id);
+    }
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       status: 'submitted',
       kyb_job_id: kybJob.id,
-      message: 'Business submitted for KYB review. This typically takes 1-2 business days.',
+      message: usePersona
+        ? 'Business submitted. Please complete verification via Persona.'
+        : 'Business submitted for KYB review. This typically takes 1-2 business days.',
+      use_persona: usePersona,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -25,11 +25,14 @@ import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { useEnvironmentMode } from "@/hooks/useEnvironmentMode";
+import { EnvironmentModeSwitcher } from "@/components/EnvironmentModeSwitcher";
 
 const mainNavItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Transactions", path: "/transactions", icon: ArrowLeftRight },
   { label: "Payouts", path: "/payouts", icon: Wallet },
+  { label: "Payout Destinations", path: "/payout-destinations", icon: Wallet },
   { label: "Customers", path: "/customers", icon: Users },
 ];
 
@@ -57,6 +60,7 @@ export function LeftNav() {
   const navigate = useNavigate();
   const { merchant } = useAppStore();
   const { signOut } = useAuth();
+  const { mode, isTestMode } = useEnvironmentMode();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -126,19 +130,9 @@ export function LeftNav() {
             <span className="font-semibold text-lg">Klyr</span>
           </Link>
           {merchant && (
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-3 space-y-2">
               <p className="text-xs text-sidebar-foreground/60 truncate">{merchant.name}</p>
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-[10px] px-1.5 py-0",
-                  merchant.productionEnabled 
-                    ? "border-success text-success" 
-                    : "border-warning text-warning"
-                )}
-              >
-                {merchant.productionEnabled ? "Live" : "Sandbox"}
-              </Badge>
+              <EnvironmentModeSwitcher variant="badge-only" />
             </div>
           )}
         </div>

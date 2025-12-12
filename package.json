@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "deploy:functions": "powershell -ExecutionPolicy Bypass -File ./deploy-functions-npx.ps1",
     "deploy:api": "powershell -ExecutionPolicy Bypass -File ./deploy-api.ps1",
+    "deploy:verify": "node scripts/verify-deployment.js",
     "test:payment": "tsx scripts/test-payment-flow.ts",
     "generate:wallet": "node scripts/generate-hot-wallet.js",
     "cron": "node cron-worker.js"
@@ -79,7 +80,8 @@
     "viem": "^2.41.2",
     "wagmi": "^3.1.0",
     "zod": "^3.25.76",
-    "zustand": "^5.0.9"
+    "zustand": "^5.0.9",
+    "persona": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

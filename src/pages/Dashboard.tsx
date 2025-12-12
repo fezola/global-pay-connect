@@ -10,6 +10,8 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { CurrencyBalance } from "@/components/dashboard/CurrencyBalance";
 import { ApiKeyCard } from "@/components/dashboard/ApiKeyCard";
+import { EnvironmentModeSwitcher } from "@/components/EnvironmentModeSwitcher";
+import { useEnvironmentMode } from "@/hooks/useEnvironmentMode";
 import { WebhookStatus } from "@/components/dashboard/WebhookStatus";
 import { Button } from "@/components/ui/button";
 import { useMerchant } from "@/hooks/useMerchant";
@@ -33,12 +35,13 @@ import type { Transaction } from "@/lib/mockData";
 export default function Dashboard() {
   // Enable real-time KYB status updates
   useRealtimeKYB();
-  
+
   const { merchant } = useMerchant();
   const { profile } = useProfile();
   const { transactions: dbTransactions, loading: txLoading } = useTransactions();
   const { balances: dbBalances, formatBalance, loading: balLoading } = useBalances();
-  
+  const { mode, isTestMode } = useEnvironmentMode();
+
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPayout, setShowPayout] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -83,28 +86,28 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-              Sandbox
-            </span>
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight mb-1">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {profile?.full_name || merchant?.name || "Developer"}
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Welcome back, {profile?.full_name || merchant?.name || "Developer"}
-          </p>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Notifications</span>
+            </Button>
+            <Button onClick={() => setShowCheckout(true)} className="gap-2">
+              <ArrowDownLeft className="h-4 w-4" />
+              {isTestMode ? "Receive Test USDC" : "Receive USDC"}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notifications</span>
-          </Button>
-          <Button onClick={() => setShowCheckout(true)} className="gap-2">
-            <ArrowDownLeft className="h-4 w-4" />
-            Receive Test USDC
-          </Button>
-        </div>
+
+        {/* Environment Mode Switcher */}
+        <EnvironmentModeSwitcher variant="compact" showWarning={false} />
       </div>
 
       {/* Stats Grid */}

@@ -6,6 +6,9 @@ import { useAppStore } from "@/lib/store";
 import { Copy, Check, ExternalLink, Terminal, Code, Palette, Zap, Layout, Rocket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
+import { EnvironmentModeSwitcher } from "@/components/EnvironmentModeSwitcher";
+import { useEnvironmentMode } from "@/hooks/useEnvironmentMode";
+import { useMerchant } from "@/hooks/useMerchant";
 
 const codeSnippets = {
   install: `npm install @klyr/sdk`,
@@ -129,11 +132,18 @@ Klyr.checkout({
 };
 
 export default function Developer() {
-  const { merchant } = useAppStore();
+  const { merchant: storeMerchant } = useAppStore();
+  const { merchant } = useMerchant();
+  const { mode, isTestMode } = useEnvironmentMode();
   const navigate = useNavigate();
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
   const [copiedApiKey, setCopiedApiKey] = useState(false);
   const [showWidgetPreview, setShowWidgetPreview] = useState(false);
+
+  // Get the appropriate API key based on mode
+  const currentApiKey = isTestMode
+    ? (merchant?.api_key_sandbox || storeMerchant?.apiKey || '')
+    : (merchant?.api_key_production || merchant?.api_key_live || storeMerchant?.apiKeyLive || '');
 
   const copySnippet = (key: string, code: string) => {
     navigator.clipboard.writeText(code);
@@ -142,8 +152,8 @@ export default function Developer() {
   };
 
   const copyApiKey = () => {
-    if (merchant?.apiKey) {
-      navigator.clipboard.writeText(merchant.apiKey);
+    if (currentApiKey) {
+      navigator.clipboard.writeText(currentApiKey);
       setCopiedApiKey(true);
       setTimeout(() => setCopiedApiKey(false), 2000);
     }
@@ -151,22 +161,22 @@ export default function Developer() {
 
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">Developer</h1>
-            <span className="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-full">
-              Sandbox
-            </span>
+      <div className="mb-8 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight mb-1">Developer</h1>
+            <p className="text-muted-foreground">
+              SDK documentation, integration guides, and embeddable checkout widget
+            </p>
           </div>
           <Button onClick={() => navigate('/checkout-demo')} className="gap-2">
             <Rocket className="h-4 w-4" />
             Try Checkout Demo
           </Button>
         </div>
-        <p className="text-muted-foreground">
-          SDK documentation, integration guides, and embeddable checkout widget
-        </p>
+
+        {/* Environment Mode Switcher */}
+        <EnvironmentModeSwitcher />
       </div>
 
       <Tabs defaultValue="sdk" className="space-y-6">
@@ -265,15 +275,34 @@ export default function Developer() {
             <div className="space-y-6">
               {/* API Key */}
               <div className="bg-card rounded-xl border border-border p-4">
-                <h3 className="font-semibold mb-3">Sandbox API Key</h3>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 p-2 bg-muted rounded-lg text-xs font-mono truncate">
-                    {merchant?.apiKey.substring(0, 24)}...
-                  </code>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={copyApiKey}>
-                    {copiedApiKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold">
+                    {isTestMode ? "Test API Key" : "Production API Key"}
+                  </h3>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                    isTestMode
+                      ? "bg-warning/10 text-warning"
+                      : "bg-success/10 text-success"
+                  }`}>
+                    {isTestMode ? "Sandbox" : "Live"}
+                  </span>
                 </div>
+                {currentApiKey ? (
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-2 bg-muted rounded-lg text-xs font-mono truncate">
+                      {currentApiKey.substring(0, 24)}...
+                    </code>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={copyApiKey}>
+                      {copiedApiKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                    {isTestMode
+                      ? "No test API key available"
+                      : "Production mode not enabled. Complete KYB verification first."}
+                  </div>
+                )}
               </div>
 
               {/* Resources */}

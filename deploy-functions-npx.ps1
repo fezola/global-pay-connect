@@ -50,11 +50,20 @@ Deploy-Function -FunctionName "monitor-blockchain" -VerifyJWT $false
 Deploy-Function -FunctionName "settle-payment" -VerifyJWT $false
 Deploy-Function -FunctionName "deliver-webhooks" -VerifyJWT $false
 
-# Deploy existing KYB functions
+# Deploy KYB functions
 Write-Host "=== Deploying KYB Functions ===" -ForegroundColor Magenta
 Deploy-Function -FunctionName "wallet-nonce" -VerifyJWT $false
 Deploy-Function -FunctionName "prove-control" -VerifyJWT $false
 Deploy-Function -FunctionName "submit-kyb" -VerifyJWT $false
+Deploy-Function -FunctionName "create-persona-inquiry" -VerifyJWT $true
+Deploy-Function -FunctionName "persona-webhook" -VerifyJWT $false
+
+# Deploy payout functions
+Write-Host "=== Deploying Payout Functions ===" -ForegroundColor Magenta
+Deploy-Function -FunctionName "create-payout" -VerifyJWT $true
+Deploy-Function -FunctionName "process-payout" -VerifyJWT $false
+Deploy-Function -FunctionName "approve-payout" -VerifyJWT $true
+Deploy-Function -FunctionName "reject-payout" -VerifyJWT $true
 
 Write-Host "Deployment complete!" -ForegroundColor Green
 Write-Host ""
