@@ -13,7 +13,7 @@
     "deploy:api": "powershell -ExecutionPolicy Bypass -File ./deploy-api.ps1",
     "test:payment": "tsx scripts/test-payment-flow.ts",
     "generate:wallet": "node scripts/generate-hot-wallet.js",
-    "cron": "node scripts/run-cron-jobs.js"
+    "cron": "node cron-worker.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

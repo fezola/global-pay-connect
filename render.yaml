@@ -1,0 +1,14 @@
+# Render Blueprint for Klyr Cron Jobs
+# This file tells Render how to deploy the automated jobs
+
+services:
+  - type: worker
+    name: klyr-cron-jobs
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run cron
+    envVars:
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
