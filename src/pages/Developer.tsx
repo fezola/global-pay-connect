@@ -3,8 +3,9 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { EmbeddableCheckout, EmbeddableCheckoutPreview } from "@/components/EmbeddableCheckout";
 import { useAppStore } from "@/lib/store";
-import { Copy, Check, ExternalLink, Terminal, Code, Palette, Zap, Layout } from "lucide-react";
+import { Copy, Check, ExternalLink, Terminal, Code, Palette, Zap, Layout, Rocket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
 
 const codeSnippets = {
   install: `npm install @klyr/sdk`,
@@ -129,6 +130,7 @@ Klyr.checkout({
 
 export default function Developer() {
   const { merchant } = useAppStore();
+  const navigate = useNavigate();
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
   const [copiedApiKey, setCopiedApiKey] = useState(false);
   const [showWidgetPreview, setShowWidgetPreview] = useState(false);
@@ -150,11 +152,17 @@ export default function Developer() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold tracking-tight">Developer</h1>
-          <span className="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-full">
-            Sandbox
-          </span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">Developer</h1>
+            <span className="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-full">
+              Sandbox
+            </span>
+          </div>
+          <Button onClick={() => navigate('/checkout-demo')} className="gap-2">
+            <Rocket className="h-4 w-4" />
+            Try Checkout Demo
+          </Button>
         </div>
         <p className="text-muted-foreground">
           SDK documentation, integration guides, and embeddable checkout widget

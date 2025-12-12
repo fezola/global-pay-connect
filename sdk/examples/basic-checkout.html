@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klyr Checkout - Basic Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 48px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      color: #1a202c;
+    }
+
+    .subtitle {
+      color: #718096;
+      margin-bottom: 32px;
+    }
+
+    .product {
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .product-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2d3748;
+    }
+
+    .product-description {
+      color: #718096;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .price {
+      font-size: 36px;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .price-currency {
+      font-size: 18px;
+      color: #a0aec0;
+    }
+
+    .pay-button {
+      width: 100%;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .pay-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .pay-button:active {
+      transform: translateY(0);
+    }
+
+    .features {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      color: #4a5568;
+      font-size: 14px;
+    }
+
+    .feature::before {
+      content: "✓";
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background: #48bb78;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      margin-right: 12px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Premium Plan</h1>
+    <p class="subtitle">Unlock all features with crypto payments</p>
+
+    <div class="product">
+      <div class="product-name">Monthly Subscription</div>
+      <div class="product-description">
+        Access to all premium features, priority support, and exclusive content
+      </div>
+      <div class="price">
+        $29.99
+        <span class="price-currency">/ month</span>
+      </div>
+    </div>
+
+    <button id="pay-button" class="pay-button">
+      Pay with Crypto 🚀
+    </button>
+
+    <div class="features">
+      <div class="feature">Instant settlement</div>
+      <div class="feature">Low transaction fees</div>
+      <div class="feature">Secure blockchain verification</div>
+      <div class="feature">Multiple payment options</div>
+    </div>
+  </div>
+
+  <!-- Klyr Checkout SDK -->
+  <script src="https://js.klyr.io/v1/checkout.js"></script>
+  
+  <script>
+    document.getElementById('pay-button').addEventListener('click', function() {
+      // Open Klyr Checkout
+      Klyr.checkout.open({
+        merchantId: 'demo_merchant',
+        amount: '29.99',
+        currency: 'USD',
+        description: 'Premium Plan - Monthly Subscription',
+        customerEmail: 'customer@example.com',
+        metadata: {
+          plan: 'premium',
+          billing_cycle: 'monthly'
+        },
+        theme: 'auto',
+        onSuccess: function(paymentId, txHash) {
+          console.log('Payment successful!');
+          console.log('Payment ID:', paymentId);
+          console.log('Transaction Hash:', txHash);
+          
+          // Redirect to success page
+          alert('Payment successful! Payment ID: ' + paymentId);
+          // window.location.href = '/success?payment_id=' + paymentId;
+        },
+        onClose: function() {
+          console.log('Checkout closed');
+        },
+        onError: function(error) {
+          console.error('Payment failed:', error);
+          alert('Payment failed: ' + error.message);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

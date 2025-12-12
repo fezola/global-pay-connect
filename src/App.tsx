@@ -23,6 +23,10 @@ import Developer from "./pages/Developer";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import ApiTest from "./pages/ApiTest";
+import CheckoutDemo from "./pages/CheckoutDemo";
+import MultiStepCheckoutDemo from "./pages/MultiStepCheckoutDemo";
+import LandingPage from "./pages/LandingPage";
+import Checkout from "./pages/Checkout";
 
 const queryClient = new QueryClient();
 
@@ -34,9 +38,10 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
+            <Route path="/signup" element={<Navigate to="/auth" replace />} />
             <Route path="/onboarding" element={
               <ProtectedRoute>
                 <Onboarding />
@@ -117,6 +122,13 @@ const App = () => (
                 <ApiTest />
               </ProtectedRoute>
             } />
+            <Route path="/checkout-demo" element={
+              <ProtectedRoute>
+                <CheckoutDemo />
+              </ProtectedRoute>
+            } />
+            <Route path="/multi-step-checkout" element={<MultiStepCheckoutDemo />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

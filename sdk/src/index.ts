@@ -1,5 +1,9 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
+// Export checkout functionality
+export { default as KlyrCheckout, checkout } from './checkout';
+export type { CheckoutOptions, CheckoutSession } from './checkout';
+
 export interface KlyrConfig {
   apiKey: string;
   baseUrl?: string;

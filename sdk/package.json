@@ -5,12 +5,30 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./react": {
+      "require": "./dist/react.js",
+      "import": "./dist/react.mjs",
+      "types": "./dist/react.d.ts"
+    },
+    "./checkout": {
+      "require": "./dist/checkout.js",
+      "import": "./dist/checkout.mjs",
+      "types": "./dist/checkout.d.ts"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts src/checkout.ts src/react.tsx --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/checkout.ts src/react.tsx --format cjs,esm --dts --watch",
     "test": "vitest",
     "prepublishOnly": "npm run build"
   },
@@ -41,6 +59,18 @@
   },
   "dependencies": {
     "axios": "^1.6.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   }
 }
 

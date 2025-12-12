@@ -4,18 +4,36 @@ A developer-first payment platform for accepting USDC/USDT on Solana blockchain.
 
 ## 🚀 Features
 
+- ✅ **Checkout Widget/SDK** - Embeddable payment UI like Stripe Checkout
+- ✅ **Multi-Chain Support** - Solana & Base networks (USDC/USDT)
+- ✅ **Wallet Integration** - Phantom, MetaMask, Coinbase Wallet
 - ✅ **Real Blockchain Payments** - Accept USDC/USDT on Solana mainnet/devnet
 - ✅ **Payment Intents API** - Create and track payment requests
 - ✅ **Automatic Settlement** - Blockchain monitoring and auto-settlement
 - ✅ **Webhook System** - Real-time payment notifications with retry logic
+- ✅ **Recurring Payments** - Subscription and auto-renew support
 - ✅ **QR Code Payments** - Solana Pay compatible QR codes
 - ✅ **Merchant Dashboard** - Complete payment management UI
 - ✅ **KYB Verification** - Business verification and compliance
-- ✅ **Multi-wallet Support** - Solana, Ethereum, Polygon, and more
 - ✅ **Real-time Updates** - Live payment status via Supabase subscriptions
 
 ## 📚 Documentation
 
+### 🚀 Quick Start
+- **[FINAL_SUMMARY.md](./FINAL_SUMMARY.md)** - ⭐ Start here! Complete overview
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - How to test with real wallets
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Common issues & solutions
+
+### Checkout Widget
+- [Checkout Widget README](./CHECKOUT_WIDGET_README.md) - Quick start guide
+- [Integration Guide](./docs/INTEGRATION_GUIDE.md) - Complete integration instructions
+- [Checkout Widget Docs](./docs/CHECKOUT_WIDGET.md) - Full widget documentation
+- [Blockchain Integration](./BLOCKCHAIN_INTEGRATION_COMPLETE.md) - Technical implementation
+- [Recurring Payments](./docs/RECURRING_PAYMENTS.md) - Subscription implementation
+- [Quick Reference](./QUICK_REFERENCE.md) - Developer cheat sheet
+- [Access Guide](./CHECKOUT_ACCESS_GUIDE.md) - How to access and test
+
+### Platform
 - [Payment Flow](./PAYMENT_FLOW.md) - Complete payment flow documentation
 - [Deployment Guide](./DEPLOYMENT.md) - Step-by-step deployment instructions
 - [Cron Setup](./supabase/functions/_cron/README.md) - Background job configuration
@@ -44,7 +62,50 @@ Webhooks (Merchant Servers)
 
 ## 🚦 Quick Start
 
-### Prerequisites
+### Try the Checkout Widget Demo
+
+```bash
+npm install
+npm run dev
+```
+
+Then navigate to: `http://localhost:5173/checkout-demo`
+
+Or login and click **"Checkout Demo"** in the sidebar.
+
+### Integrate Checkout Widget
+
+**JavaScript (Any Website):**
+```html
+<script src="https://js.klyr.io/v1/checkout.js"></script>
+<button onclick="Klyr.checkout.open({
+  merchantId: 'your_merchant_id',
+  amount: '100.00',
+  onSuccess: (id) => console.log('Success!', id)
+})">Pay with Crypto</button>
+```
+
+**React:**
+```bash
+npm install @klyr/sdk
+```
+```tsx
+import { KlyrCheckoutButton } from '@klyr/sdk/react';
+
+<KlyrCheckoutButton
+  merchantId="your_merchant_id"
+  amount="100.00"
+  onSuccess={(id) => console.log('Success!', id)}
+>
+  Pay with Crypto
+</KlyrCheckoutButton>
+```
+
+See [Integration Guide](./docs/INTEGRATION_GUIDE.md) for more options.
+
+### Development Setup
+
+#### Prerequisites
 
 - Node.js 18+
 - Supabase account

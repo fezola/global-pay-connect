@@ -49,6 +49,7 @@ const advancedNavItems = [
 const devNavItems = [
   { label: "Settings", path: "/settings", icon: Settings },
   { label: "Developer", path: "/dev", icon: Code },
+  { label: "Checkout Demo", path: "/checkout-demo", icon: Code, badge: "New" },
 ];
 
 export function LeftNav() {
