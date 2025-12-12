@@ -1,18 +1,30 @@
 /**
  * Run automated jobs locally
  * This script calls the edge functions at regular intervals
- * 
+ *
  * Usage:
  * 1. Set SUPABASE_SERVICE_ROLE_KEY in .env
  * 2. Run: node scripts/run-cron-jobs.js
- * 
+ *
  * Keep this running in the background!
  */
 
-import 'dotenv/config';
+import fs from 'fs';
 
 const SUPABASE_URL = 'https://crkhkzcscgoeyspaczux.supabase.co';
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Read service role key from .env file
+function getServiceRoleKey() {
+  try {
+    const envContent = fs.readFileSync('.env', 'utf-8');
+    const match = envContent.match(/SUPABASE_SERVICE_ROLE_KEY="?([^"\n]+)"?/);
+    return match ? match[1] : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+const SERVICE_ROLE_KEY = getServiceRoleKey();
 
 if (!SERVICE_ROLE_KEY) {
   console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY not found in .env file');
