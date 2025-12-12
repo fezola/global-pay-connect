@@ -2,13 +2,16 @@
 # This file tells Render how to deploy the automated jobs
 
 services:
-  - type: worker
+  - type: web
     name: klyr-cron-jobs
     env: node
     plan: free
     buildCommand: npm install
     startCommand: npm run cron
+    healthCheckPath: /health
     envVars:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: PORT
+        value: 10000
 

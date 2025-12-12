@@ -3,13 +3,28 @@
  * Runs automated jobs for payment processing and payouts
  */
 
+import http from 'http';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
 const SUPABASE_URL = 'https://crkhkzcscgoeyspaczux.supabase.co';
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PORT = process.env.PORT || 3000;
 
 if (!SERVICE_ROLE_KEY) {
   console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable not set');
   process.exit(1);
 }
+
+// Job status tracking
+const jobStatus = {
+  lastRun: {},
+  totalRuns: {},
+  errors: {},
+  startTime: new Date().toISOString()
+};
 
 // Call an edge function
 async function callEdgeFunction(functionName) {
@@ -25,17 +40,23 @@ async function callEdgeFunction(functionName) {
 
     const data = await response.json();
     const timestamp = new Date().toLocaleTimeString();
-    
+
+    // Update job status
+    jobStatus.lastRun[functionName] = new Date().toISOString();
+    jobStatus.totalRuns[functionName] = (jobStatus.totalRuns[functionName] || 0) + 1;
+
     if (response.ok) {
       console.log(`✅ [${timestamp}] ${functionName}: Success`);
       return { success: true, data };
     } else {
       console.log(`❌ [${timestamp}] ${functionName}: Failed - ${data.error || 'Unknown error'}`);
+      jobStatus.errors[functionName] = (jobStatus.errors[functionName] || 0) + 1;
       return { success: false, error: data.error };
     }
   } catch (error) {
     const timestamp = new Date().toLocaleTimeString();
     console.log(`❌ [${timestamp}] ${functionName}: Error - ${error.message}`);
+    jobStatus.errors[functionName] = (jobStatus.errors[functionName] || 0) + 1;
     return { success: false, error: error.message };
   }
 }
@@ -60,11 +81,44 @@ async function processPayouts() {
   await callEdgeFunction('process-payout');
 }
 
+// Create HTTP server for health checks
+function createHealthServer() {
+  const server = http.createServer((req, res) => {
+    if (req.url === '/health' || req.url === '/') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        uptime: process.uptime(),
+        jobs: jobStatus,
+        timestamp: new Date().toISOString()
+      }));
+    } else if (req.url === '/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(jobStatus));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
+    }
+  });
+
+  server.listen(PORT, () => {
+    console.log(`🌐 Health check server running on port ${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/health`);
+    console.log(`   Status: http://localhost:${PORT}/status\n`);
+  });
+
+  return server;
+}
+
 // Main function
 async function main() {
   console.log('🚀 Klyr Cron Worker Started\n');
   console.log('📍 Supabase URL:', SUPABASE_URL);
   console.log('🔑 Service Role Key:', SERVICE_ROLE_KEY.slice(0, 20) + '...\n');
+
+  // Start health check server
+  const server = createHealthServer();
+
   console.log('Jobs running:');
   console.log('  - Monitor Blockchain: Every 30 seconds');
   console.log('  - Settle Payments: Every 1 minute');
