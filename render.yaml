@@ -6,7 +6,7 @@ services:
     name: klyr-cron-jobs
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: npm run cron
     healthCheckPath: /health
     envVars:
