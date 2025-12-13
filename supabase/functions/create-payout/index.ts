@@ -12,6 +12,7 @@ interface PayoutRequest {
   destination_id?: string;
   destination_address?: string;
   notes?: string;
+  chain?: string;
 }
 
 serve(async (req) => {
@@ -54,6 +55,16 @@ serve(async (req) => {
     const body: PayoutRequest = await req.json();
     const amount = parseFloat(body.amount);
     const currency = body.currency || 'USDC';
+    const requestedChain = body.chain;
+
+    // Validate chain if provided
+    const supportedChains = ['solana', 'ethereum', 'base', 'polygon'];
+    if (requestedChain && !supportedChains.includes(requestedChain)) {
+      return new Response(JSON.stringify({ error: 'Unsupported chain' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
@@ -111,6 +122,7 @@ serve(async (req) => {
     let destinationId = body.destination_id;
     let destinationAddress = body.destination_address;
     let destinationType = 'wallet';
+    let payoutChain = requestedChain || 'solana'; // Default to solana
 
     if (destinationId) {
       // Validate destination exists and belongs to merchant
@@ -130,6 +142,7 @@ serve(async (req) => {
 
       destinationAddress = destination.address;
       destinationType = destination.type;
+      payoutChain = destination.chain || payoutChain; // Use destination's chain
     } else if (!destinationAddress) {
       return new Response(JSON.stringify({ error: 'Destination address or destination_id required' }), {
         status: 400,
@@ -154,7 +167,7 @@ serve(async (req) => {
         approved_by: requiresApproval ? null : user.id,
         approved_at: requiresApproval ? null : new Date().toISOString(),
         notes: body.notes,
-        chain: 'solana',
+        chain: payoutChain,
       })
       .select()
       .single();
@@ -167,11 +180,31 @@ serve(async (req) => {
       });
     }
 
+    // If auto-approved, generate unsigned transaction immediately
+    if (!requiresApproval) {
+      try {
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabaseService = createClient(supabaseUrl, serviceRoleKey);
+
+        // Call generate-payout-transaction function
+        const { data: txData, error: txError } = await supabaseService.functions.invoke(
+          'generate-payout-transaction',
+          { body: { payout_id: payout.id } }
+        );
+
+        if (txError) {
+          console.error('Failed to generate transaction:', txError);
+        }
+      } catch (error) {
+        console.error('Error generating transaction:', error);
+      }
+    }
+
     return new Response(JSON.stringify({
       ...payout,
-      message: requiresApproval 
-        ? 'Payout created and pending approval' 
-        : 'Payout created and approved, will be processed shortly'
+      message: requiresApproval
+        ? 'Payout created and pending approval'
+        : 'Payout created. Please sign the transaction to complete.'
     }), {
       status: 201,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

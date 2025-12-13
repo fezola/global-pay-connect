@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Payouts from "./pages/Payouts";
 import PayoutDestinations from "./pages/PayoutDestinations";
+import PayoutApprovals from "./pages/PayoutApprovals";
+import PayoutSchedules from "./pages/PayoutSchedules";
 import Customers from "./pages/Customers";
 import Business from "./pages/Business";
 import Compliance from "./pages/Compliance";
@@ -68,6 +70,16 @@ const App = () => (
             <Route path="/payout-destinations" element={
               <ProtectedRoute>
                 <PayoutDestinations />
+              </ProtectedRoute>
+            } />
+            <Route path="/payout-approvals" element={
+              <ProtectedRoute>
+                <PayoutApprovals />
+              </ProtectedRoute>
+            } />
+            <Route path="/payout-schedules" element={
+              <ProtectedRoute>
+                <PayoutSchedules />
               </ProtectedRoute>
             } />
             <Route path="/customers" element={

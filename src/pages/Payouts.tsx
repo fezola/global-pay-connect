@@ -2,23 +2,25 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { PayoutForm } from "@/components/PayoutForm";
 import { PayoutDetailsModal } from "@/components/PayoutDetailsModal";
+import { SignPayoutDialog } from "@/components/SignPayoutDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { usePayouts, Payout } from "@/hooks/usePayouts";
 import { useBalances } from "@/hooks/useBalances";
 import { useMerchant } from "@/hooks/useMerchant";
-import { ArrowUpRight, Wallet, Loader2, ExternalLink, Eye } from "lucide-react";
+import { ArrowUpRight, Wallet, Loader2, ExternalLink, Eye, PenTool } from "lucide-react";
 import { format } from "date-fns";
 import { EnvironmentModeSwitcher } from "@/components/EnvironmentModeSwitcher";
 import { useEnvironmentMode } from "@/hooks/useEnvironmentMode";
 
 export default function Payouts() {
-  const { payouts, loading: payoutsLoading, approvePayout, rejectPayout, cancelPayout } = usePayouts();
+  const { payouts, loading: payoutsLoading, approvePayout, rejectPayout, cancelPayout, refetch } = usePayouts();
   const { balances, formatBalance, loading: balancesLoading } = useBalances();
   const { merchant } = useMerchant();
   const [showPayoutForm, setShowPayoutForm] = useState(false);
   const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
+  const [signingPayoutId, setSigningPayoutId] = useState<string | null>(null);
   const { isTestMode } = useEnvironmentMode();
 
   // Check if user can approve payouts (admin/owner role)
@@ -129,14 +131,26 @@ export default function Payouts() {
                       {format(new Date(payout.created_at), "MMM d, yyyy")}
                     </td>
                     <td className="p-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedPayout(payout)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {payout.status === 'awaiting_signature' && (
+                          <Button
+                            size="sm"
+                            onClick={() => setSigningPayoutId(payout.id)}
+                            className="gap-1"
+                          >
+                            <PenTool className="h-3 w-3" />
+                            Sign
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedPayout(payout)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -168,6 +182,19 @@ export default function Payouts() {
           onReject={rejectPayout}
           onCancel={cancelPayout}
           canApprove={canApprove}
+        />
+      )}
+
+      {/* Sign Payout Dialog */}
+      {signingPayoutId && (
+        <SignPayoutDialog
+          open={!!signingPayoutId}
+          onOpenChange={(open) => !open && setSigningPayoutId(null)}
+          payoutId={signingPayoutId}
+          onSuccess={() => {
+            setSigningPayoutId(null);
+            refetch();
+          }}
         />
       )}
     </DashboardLayout>

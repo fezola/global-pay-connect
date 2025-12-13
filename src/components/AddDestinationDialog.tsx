@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PayoutDestination } from "@/hooks/usePayoutDestinations";
 
 interface AddDestinationDialogProps {
@@ -19,42 +20,71 @@ interface AddDestinationDialogProps {
   editingDestination?: PayoutDestination | null;
 }
 
+// Chain configurations
+const SUPPORTED_CHAINS = [
+  { value: 'solana', label: 'Solana', placeholder: 'Enter Solana wallet address (e.g., 7xKXtg...)' },
+  { value: 'ethereum', label: 'Ethereum', placeholder: 'Enter Ethereum address (0x...)' },
+  { value: 'base', label: 'Base', placeholder: 'Enter Base address (0x...)' },
+  { value: 'polygon', label: 'Polygon', placeholder: 'Enter Polygon address (0x...)' },
+] as const;
+
 export function AddDestinationDialog({
   onClose,
   onSubmit,
   editingDestination,
 }: AddDestinationDialogProps) {
-  const [type, setType] = useState<'wallet' | 'bank'>(editingDestination?.type || 'wallet');
   const [label, setLabel] = useState(editingDestination?.label || '');
   const [chain, setChain] = useState(editingDestination?.chain || 'solana');
   const [address, setAddress] = useState(editingDestination?.address || '');
-  const [bankName, setBankName] = useState(editingDestination?.bank_name || '');
-  const [accountHolder, setAccountHolder] = useState(editingDestination?.account_holder || '');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [routingNumber, setRoutingNumber] = useState(editingDestination?.routing_number || '');
   const [isDefault, setIsDefault] = useState(editingDestination?.is_default || false);
   const [loading, setLoading] = useState(false);
+  const [addressError, setAddressError] = useState('');
 
-  const isValid = type === 'wallet'
-    ? label.length > 0 && address.length > 0
-    : label.length > 0 && bankName.length > 0 && accountHolder.length > 0 && accountNumber.length > 0;
+  const selectedChain = SUPPORTED_CHAINS.find(c => c.value === chain);
+  const isValid = label.length > 0 && address.length > 0 && !addressError;
+
+  // Validate address format based on chain
+  useEffect(() => {
+    if (!address) {
+      setAddressError('');
+      return;
+    }
+
+    if (chain === 'solana') {
+      // Solana addresses are base58 encoded, typically 32-44 characters
+      if (address.length < 32 || address.length > 44) {
+        setAddressError('Invalid Solana address length');
+      } else if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(address)) {
+        setAddressError('Invalid Solana address format');
+      } else {
+        setAddressError('');
+      }
+    } else {
+      // EVM chains (Ethereum, Base, Polygon) use 0x addresses
+      if (!address.startsWith('0x')) {
+        setAddressError('Address must start with 0x');
+      } else if (address.length !== 42) {
+        setAddressError('Invalid address length (should be 42 characters)');
+      } else if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        setAddressError('Invalid address format');
+      } else {
+        setAddressError('');
+      }
+    }
+  }, [address, chain]);
 
   const handleSubmit = async () => {
     if (!isValid) return;
 
     setLoading(true);
     try {
-      const data = type === 'wallet'
-        ? { type, label, chain, address, is_default: isDefault }
-        : {
-            type,
-            label,
-            bank_name: bankName,
-            account_holder: accountHolder,
-            account_number_last4: accountNumber.slice(-4),
-            routing_number: routingNumber,
-            is_default: isDefault,
-          };
+      const data = {
+        type: 'wallet' as const,
+        label,
+        chain,
+        address,
+        is_default: isDefault,
+      };
 
       await onSubmit(data);
       onClose();
@@ -70,7 +100,7 @@ export function AddDestinationDialog({
       <div className="bg-card rounded-lg shadow-lg w-full max-w-md animate-fade-in">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold">
-            {editingDestination ? 'Edit Destination' : 'Add Payout Destination'}
+            {editingDestination ? 'Edit Wallet Destination' : 'Add Wallet Destination'}
           </h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -78,105 +108,67 @@ export function AddDestinationDialog({
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label>Destination Type</Label>
-            <Select value={type} onValueChange={(v) => setType(v as 'wallet' | 'bank')} disabled={!!editingDestination}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="wallet">Crypto Wallet</SelectItem>
-                <SelectItem value="bank">Bank Account (Coming Soon)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Alert className="bg-primary/5 border-primary/20">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              Add a crypto wallet address to receive your payouts. All withdrawals are on-chain only.
+            </AlertDescription>
+          </Alert>
 
           <div className="space-y-2">
-            <Label htmlFor="label">Label / Name</Label>
+            <Label htmlFor="label">Wallet Label / Name</Label>
             <Input
               id="label"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g., Main Wallet, Business Account"
+              placeholder="e.g., Main Wallet, Cold Storage, Business Wallet"
             />
+            <p className="text-xs text-muted-foreground">
+              Give this wallet a memorable name
+            </p>
           </div>
 
-          {type === 'wallet' ? (
-            <>
-              <div className="space-y-2">
-                <Label>Blockchain</Label>
-                <Select value={chain} onValueChange={setChain}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="solana">Solana</SelectItem>
-                    <SelectItem value="ethereum" disabled>Ethereum (Coming Soon)</SelectItem>
-                    <SelectItem value="base" disabled>Base (Coming Soon)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="space-y-2">
+            <Label>Blockchain Network</Label>
+            <Select value={chain} onValueChange={setChain} disabled={!!editingDestination}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORTED_CHAINS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {editingDestination ? 'Chain cannot be changed after creation' : 'Select the blockchain network'}
+            </p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Wallet Address</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter Solana wallet address"
-                  className="font-mono text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Make sure this address can receive SPL tokens (USDC/USDT)
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="bankName">Bank Name</Label>
-                <Input
-                  id="bankName"
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  placeholder="e.g., Chase, Bank of America"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="accountHolder">Account Holder Name</Label>
-                <Input
-                  id="accountHolder"
-                  value={accountHolder}
-                  onChange={(e) => setAccountHolder(e.target.value)}
-                  placeholder="Full name on account"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="accountNumber">Account Number</Label>
-                <Input
-                  id="accountNumber"
-                  type="password"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="Account number"
-                  className="font-mono"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="routingNumber">Routing Number (Optional)</Label>
-                <Input
-                  id="routingNumber"
-                  value={routingNumber}
-                  onChange={(e) => setRoutingNumber(e.target.value)}
-                  placeholder="9-digit routing number"
-                  className="font-mono"
-                />
-              </div>
-            </>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="address">Wallet Address</Label>
+            <Input
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={selectedChain?.placeholder}
+              className={`font-mono text-sm ${addressError ? 'border-destructive' : ''}`}
+            />
+            {addressError ? (
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {addressError}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {chain === 'solana'
+                  ? 'Make sure this address can receive SPL tokens (USDC/USDT)'
+                  : 'Make sure this address can receive ERC-20 tokens (USDC/USDT)'}
+              </p>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 pt-2">
             <Checkbox
@@ -185,7 +177,7 @@ export function AddDestinationDialog({
               onCheckedChange={(c) => setIsDefault(c === true)}
             />
             <Label htmlFor="isDefault" className="text-sm cursor-pointer">
-              Set as default destination
+              Set as default payout destination
             </Label>
           </div>
 
@@ -200,7 +192,7 @@ export function AddDestinationDialog({
                 editingDestination ? 'Update Destination' : 'Add Destination'
               )}
             </Button>
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
           </div>

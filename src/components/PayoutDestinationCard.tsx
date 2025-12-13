@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wallet, Building2, MoreVertical, Trash2, Edit, Star, CheckCircle } from "lucide-react";
+import { Wallet, MoreVertical, Trash2, Edit, Star, CheckCircle, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PayoutDestination } from "@/hooks/usePayoutDestinations";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface PayoutDestinationCardProps {
   destination: PayoutDestination;
@@ -17,6 +18,17 @@ interface PayoutDestinationCardProps {
   onSetDefault: (id: string) => void;
 }
 
+// Chain-specific explorer URLs
+const getExplorerUrl = (chain: string, address: string): string | null => {
+  const explorers: Record<string, string> = {
+    solana: `https://solscan.io/account/${address}`,
+    ethereum: `https://etherscan.io/address/${address}`,
+    base: `https://basescan.org/address/${address}`,
+    polygon: `https://polygonscan.com/address/${address}`,
+  };
+  return explorers[chain] || null;
+};
+
 export function PayoutDestinationCard({
   destination,
   onEdit,
@@ -24,70 +36,83 @@ export function PayoutDestinationCard({
   onSetDefault,
 }: PayoutDestinationCardProps) {
   const [showFullAddress, setShowFullAddress] = useState(false);
+  const { toast } = useToast();
 
   const formatAddress = (address: string) => {
     if (showFullAddress || address.length <= 20) return address;
-    return `${address.slice(0, 8)}...${address.slice(-8)}`;
+    return `${address.slice(0, 10)}...${address.slice(-10)}`;
   };
+
+  const copyAddress = () => {
+    if (destination.address) {
+      navigator.clipboard.writeText(destination.address);
+      toast({
+        title: 'Address copied',
+        description: 'Wallet address copied to clipboard',
+      });
+    }
+  };
+
+  const explorerUrl = destination.chain && destination.address
+    ? getExplorerUrl(destination.chain, destination.address)
+    : null;
 
   return (
     <div
       className={cn(
         "bg-card rounded-lg border p-4 hover:border-primary/50 transition-colors",
-        destination.is_default && "border-primary"
+        destination.is_default && "border-primary ring-1 ring-primary/20"
       )}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
-          <div className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center",
-            destination.type === 'wallet' ? "bg-primary/10" : "bg-blue-500/10"
-          )}>
-            {destination.type === 'wallet' ? (
-              <Wallet className="h-5 w-5 text-primary" />
-            ) : (
-              <Building2 className="h-5 w-5 text-blue-500" />
-            )}
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary/10">
+            <Wallet className="h-5 w-5 text-primary" />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold">{destination.label}</h3>
+              <h3 className="font-semibold truncate">{destination.label}</h3>
               {destination.is_default && (
-                <Star className="h-4 w-4 text-warning fill-warning" />
+                <Star className="h-4 w-4 text-warning fill-warning flex-shrink-0" />
               )}
               {destination.is_verified && (
-                <CheckCircle className="h-4 w-4 text-success" />
+                <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />
               )}
             </div>
 
-            {destination.type === 'wallet' ? (
-              <>
-                <p className="text-xs text-muted-foreground mb-1 capitalize">
-                  {destination.chain} Wallet
-                </p>
-                <button
-                  onClick={() => setShowFullAddress(!showFullAddress)}
-                  className="font-mono text-sm text-foreground hover:text-primary transition-colors"
-                >
-                  {formatAddress(destination.address || '')}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground mb-1">
-                  {destination.bank_name}
-                </p>
-                <p className="font-mono text-sm">
-                  ****{destination.account_number_last4}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {destination.account_holder}
-                </p>
-              </>
-            )}
+            <p className="text-xs text-muted-foreground mb-2 capitalize">
+              {destination.chain} Network
+            </p>
 
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-1 mb-2">
+              <button
+                onClick={() => setShowFullAddress(!showFullAddress)}
+                className="font-mono text-xs text-foreground hover:text-primary transition-colors truncate"
+              >
+                {formatAddress(destination.address || '')}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0"
+                onClick={copyAddress}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+              {explorerUrl && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 flex-shrink-0"
+                  onClick={() => window.open(explorerUrl, '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
               {destination.is_default && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                   Default
@@ -108,7 +133,7 @@ export function PayoutDestinationCard({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="flex-shrink-0">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -121,8 +146,18 @@ export function PayoutDestinationCard({
             )}
             <DropdownMenuItem onClick={() => onEdit(destination)}>
               <Edit className="h-4 w-4 mr-2" />
-              Edit
+              Edit label
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={copyAddress}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy address
+            </DropdownMenuItem>
+            {explorerUrl && (
+              <DropdownMenuItem onClick={() => window.open(explorerUrl, '_blank')}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View on explorer
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => onDelete(destination.id)}
               className="text-destructive"

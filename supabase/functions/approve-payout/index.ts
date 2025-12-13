@@ -90,8 +90,8 @@ serve(async (req) => {
       .from("payout_approvals")
       .insert({
         payout_id,
-        approved_by: user.id,
-        action: "approved",
+        approver_id: user.id,
+        status: "approved",
         notes,
       });
 
@@ -99,14 +99,19 @@ serve(async (req) => {
       console.error("Error creating approval record:", approvalError);
     }
 
-    // Trigger the process-payout function
-    const processResponse = await supabaseClient.functions.invoke("process-payout", {
-      body: { payout_id },
-    });
+    // Generate unsigned transaction for merchant to sign
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseService = createClient(supabaseUrl, serviceRoleKey);
 
-    if (processResponse.error) {
-      console.error("Error processing payout:", processResponse.error);
-      // Don't throw - payout is approved, processing will be retried
+    const { data: txData, error: txError } = await supabaseService.functions.invoke(
+      'generate-payout-transaction',
+      { body: { payout_id } }
+    );
+
+    if (txError) {
+      console.error("Error generating transaction:", txError);
+      // Don't throw - payout is approved, merchant can regenerate transaction
     }
 
     return new Response(

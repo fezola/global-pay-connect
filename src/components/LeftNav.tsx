@@ -21,6 +21,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CheckCircle,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
@@ -34,6 +36,8 @@ const mainNavItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Transactions", path: "/transactions", icon: ArrowLeftRight },
   { label: "Payouts", path: "/payouts", icon: Wallet },
+  { label: "Payout Approvals", path: "/payout-approvals", icon: CheckCircle },
+  { label: "Payout Schedules", path: "/payout-schedules", icon: Calendar },
   { label: "Payout Destinations", path: "/payout-destinations", icon: Wallet },
   { label: "Customers", path: "/customers", icon: Users },
 ];

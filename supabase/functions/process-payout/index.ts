@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Connection, PublicKey, Transaction, SystemProgram, Keypair } from "https://esm.sh/@solana/web3.js@1.87.6";
 import { getAssociatedTokenAddress, createTransferInstruction } from "https://esm.sh/@solana/spl-token@0.3.9";
 import bs58 from "https://esm.sh/bs58@5.0.0";
+import { processEVMPayout } from "./evm-processor.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,54 +65,75 @@ serve(async (req) => {
         // Update status to processing
         await supabase
           .from('payouts')
-          .update({ 
+          .update({
             status: 'processing',
             processed_at: new Date().toISOString()
           })
           .eq('id', payout.id);
 
-        // Get token mint based on currency
-        const tokenMint = payout.currency === 'USDT' ? USDT_MINT : USDC_MINT;
+        let signature: string;
+        const chain = payout.chain || 'solana';
 
-        // Get source token account (hot wallet)
-        const sourceTokenAccount = await getAssociatedTokenAddress(
-          tokenMint,
-          hotWallet.publicKey
-        );
+        // Process based on chain
+        if (chain === 'solana') {
+          // Solana processing
+          const tokenMint = payout.currency === 'USDT' ? USDT_MINT : USDC_MINT;
 
-        // Get destination token account
-        const destinationPubkey = new PublicKey(payout.destination_address);
-        const destinationTokenAccount = await getAssociatedTokenAddress(
-          tokenMint,
-          destinationPubkey
-        );
+          const sourceTokenAccount = await getAssociatedTokenAddress(
+            tokenMint,
+            hotWallet.publicKey
+          );
 
-        // Convert amount to token units (USDC/USDT have 6 decimals)
-        const amountInTokens = Math.floor(payout.net_amount * 1_000_000);
+          const destinationPubkey = new PublicKey(payout.destination_address);
+          const destinationTokenAccount = await getAssociatedTokenAddress(
+            tokenMint,
+            destinationPubkey
+          );
 
-        // Create transfer instruction
-        const transferInstruction = createTransferInstruction(
-          sourceTokenAccount,
-          destinationTokenAccount,
-          hotWallet.publicKey,
-          amountInTokens
-        );
+          const amountInTokens = Math.floor(payout.net_amount * 1_000_000);
 
-        // Create and send transaction
-        const transaction = new Transaction().add(transferInstruction);
-        const { blockhash } = await connection.getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
-        transaction.feePayer = hotWallet.publicKey;
+          const transferInstruction = createTransferInstruction(
+            sourceTokenAccount,
+            destinationTokenAccount,
+            hotWallet.publicKey,
+            amountInTokens
+          );
 
-        // Sign and send
-        transaction.sign(hotWallet);
-        const signature = await connection.sendRawTransaction(transaction.serialize());
+          const transaction = new Transaction().add(transferInstruction);
+          const { blockhash } = await connection.getLatestBlockhash();
+          transaction.recentBlockhash = blockhash;
+          transaction.feePayer = hotWallet.publicKey;
 
-        // Wait for confirmation
-        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+          transaction.sign(hotWallet);
+          signature = await connection.sendRawTransaction(transaction.serialize());
 
-        if (confirmation.value.err) {
-          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+          const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+
+          if (confirmation.value.err) {
+            throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+          }
+        } else if (['ethereum', 'base', 'polygon'].includes(chain)) {
+          // EVM chain processing
+          const evmPrivateKey = Deno.env.get('EVM_HOT_WALLET_PRIVATE_KEY');
+          if (!evmPrivateKey) {
+            throw new Error('EVM hot wallet private key not configured');
+          }
+
+          const result = await processEVMPayout({
+            chain: chain as 'ethereum' | 'base' | 'polygon',
+            currency: payout.currency as 'USDC' | 'USDT',
+            toAddress: payout.destination_address,
+            amount: payout.net_amount,
+            privateKey: evmPrivateKey,
+          });
+
+          if (!result.success) {
+            throw new Error(result.error || 'EVM payout failed');
+          }
+
+          signature = result.txHash!;
+        } else {
+          throw new Error(`Unsupported chain: ${chain}`);
         }
 
         // Update payout as completed

@@ -26,7 +26,6 @@ interface PayoutFormProps {
 export function PayoutForm({ onClose, maxBalance }: PayoutFormProps) {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USDC");
-  const [destinationType, setDestinationType] = useState<"wallet" | "bank">("wallet");
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>("custom");
   const [destination, setDestination] = useState("");
   const [notes, setNotes] = useState("");
@@ -38,8 +37,12 @@ export function PayoutForm({ onClose, maxBalance }: PayoutFormProps) {
   const { destinations } = usePayoutDestinations();
   const navigate = useNavigate();
 
-  // Filter destinations by type
-  const availableDestinations = destinations.filter(d => d.type === destinationType);
+  // Only wallet destinations (crypto-only platform)
+  const availableDestinations = destinations.filter(d => d.type === 'wallet');
+
+  // Get selected destination details
+  const selectedDestination = destinations.find(d => d.id === selectedDestinationId);
+  const selectedChain = selectedDestination?.chain || 'solana';
 
   // Auto-select default destination
   useEffect(() => {
@@ -70,7 +73,14 @@ export function PayoutForm({ onClose, maxBalance }: PayoutFormProps) {
   const fee = Math.max(calculatedFee, 1.0);
   const netAmount = numAmount - fee;
 
-  const eta = destinationType === "wallet" ? "5-10 minutes" : "1-3 business days";
+  // ETA varies by chain
+  const chainETAs: Record<string, string> = {
+    solana: '5-10 minutes',
+    ethereum: '2-5 minutes',
+    base: '1-2 minutes',
+    polygon: '1-3 minutes',
+  };
+  const eta = chainETAs[selectedChain] || '5-10 minutes';
   const minWithdrawal = 10;
 
   const isValid = numAmount >= minWithdrawal && numAmount <= maxBalance && destination.length > 0 && confirmed;
@@ -175,19 +185,6 @@ export function PayoutForm({ onClose, maxBalance }: PayoutFormProps) {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Destination Method</Label>
-            <Select value={destinationType} onValueChange={(v) => setDestinationType(v as "wallet" | "bank")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="wallet">Crypto Wallet (On-chain)</SelectItem>
-                <SelectItem value="bank" disabled>Bank Account (Coming Soon)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {availableDestinations.length > 0 && (
             <div className="space-y-2">
               <Label>Select Destination</Label>
@@ -198,7 +195,7 @@ export function PayoutForm({ onClose, maxBalance }: PayoutFormProps) {
                 <SelectContent>
                   {availableDestinations.map((dest) => (
                     <SelectItem key={dest.id} value={dest.id}>
-                      {dest.label} {dest.is_default && "⭐"}
+                      {dest.label} ({dest.chain}) {dest.is_default && "⭐"}
                     </SelectItem>
                   ))}
                   <SelectItem value="custom">Custom Address...</SelectItem>
