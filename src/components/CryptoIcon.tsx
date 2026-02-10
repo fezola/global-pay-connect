@@ -29,13 +29,13 @@ export function CryptoIcon({
     const loadIcon = async () => {
       try {
         // Use SVG icons for better quality
-        const icon = await import(`cryptocurrency-icons/svg/${variant}/${iconName}.svg`);
+        const icon = await import(/* @vite-ignore */ `cryptocurrency-icons/svg/${variant}/${iconName}.svg`);
         setIconUrl(icon.default);
         setError(false);
       } catch (err) {
         // Fallback to generic icon if specific icon not found
         try {
-          const genericIcon = await import(`cryptocurrency-icons/svg/${variant}/generic.svg`);
+          const genericIcon = await import(/* @vite-ignore */ `cryptocurrency-icons/svg/${variant}/generic.svg`);
           setIconUrl(genericIcon.default);
         } catch {
           setError(true);
@@ -103,7 +103,7 @@ export function NetworkIcon({
         };
 
         const symbol = chainToSymbol[chain.toLowerCase()] || chain.toLowerCase();
-        const icon = await import(`cryptocurrency-icons/svg/color/${symbol}.svg`);
+        const icon = await import(/* @vite-ignore */ `cryptocurrency-icons/svg/color/${symbol}.svg`);
         setIconUrl(icon.default);
         setError(false);
       } catch (err) {

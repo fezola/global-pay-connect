@@ -216,20 +216,18 @@ export function PayoutForm({ onClose, maxBalance }: PayoutFormProps) {
           {selectedDestinationId === "custom" && (
             <div className="space-y-2">
               <Label htmlFor="destination">
-                {destinationType === "wallet" ? "Solana Wallet Address" : "IBAN / Account Number"}
+                Solana Wallet Address
               </Label>
               <Input
                 id="destination"
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                placeholder={destinationType === "wallet" ? "Enter Solana wallet address..." : "DE89..."}
+                placeholder="Enter Solana wallet address..."
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {destinationType === "wallet"
-                  ? "Make sure this is a valid Solana address that can receive SPL tokens"
-                  : "Bank payouts are not yet available"}
+                Make sure this is a valid Solana address that can receive SPL tokens
               </p>
             </div>
           )}

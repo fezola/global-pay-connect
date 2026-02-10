@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nSecurity: Remove API keys and secrets from repository\n\n- Remove .env file from git tracking \\(contains sensitive Supabase keys\\)\n- Add .env and .env*.local to .gitignore\n- Replace all hardcoded Persona API keys with placeholders in documentation\n- Update DEPLOYMENT_GUIDE.md, PERSONA_CONFIGURATION.md, WHATS_LEFT_TO_BUILD.md, and setup-persona.ps1\n\n⚠️ IMPORTANT: Never commit actual API keys to the repository.\nUse environment variables and keep them in .env \\(which is now gitignored\\).\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git rebase:*)"
     ]
   }
 }

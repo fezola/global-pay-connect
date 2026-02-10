@@ -8,18 +8,17 @@ interface CurrencyBalanceProps {
   className?: string;
 }
 
-const currencyIcons: Record<string, string> = {
-  USDC: "U",
-  USDT: "T",
-  ETH: "E",
-  SOL: "S",
-};
-
-const currencyColors: Record<string, string> = {
-  USDC: "from-blue-500 to-blue-600",
-  USDT: "from-emerald-500 to-emerald-600",
-  ETH: "from-violet-500 to-violet-600",
-  SOL: "from-purple-500 to-purple-600",
+const currencyLogos: Record<string, string> = {
+  USDC: "/usd-coin-usdc-logo.svg",
+  USDT: "/tether-usdt-logo.svg",
+  ETH: "/ethereum-eth-logo.svg",
+  SOL: "/solana-sol-logo.svg",
+  MATIC: "/polygon-matic-logo.svg",
+  OP: "/optimism-ethereum-op-logo.svg",
+  ARB: "/arbitrum-arb-logo.svg",
+  AVAX: "/avalanche-avax-logo.svg",
+  BNB: "/bnb-bnb-logo.svg",
+  DAI: "/multi-collateral-dai-dai-logo.svg",
 };
 
 export function CurrencyBalance({ balance, isActive, onClick, className }: CurrencyBalanceProps) {
@@ -39,11 +38,12 @@ export function CurrencyBalance({ balance, isActive, onClick, className }: Curre
       )}
     >
       <div className="flex items-start gap-3">
-        <div className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white font-bold text-sm",
-          currencyColors[balance.currency] || "from-slate-500 to-slate-600"
-        )}>
-          {currencyIcons[balance.currency] || balance.currency[0]}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+          <img
+            src={currencyLogos[balance.currency] || "/placeholder.svg"}
+            alt={balance.currency}
+            className="h-10 w-10"
+          />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
