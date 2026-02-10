@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail } from "../_shared/send-email-helper.ts";
+import { paymentReceivedEmail } from "../_shared/email-templates.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -214,6 +216,35 @@ serve(async (req) => {
               confirmed_at: new Date().toISOString(),
             }
           );
+
+          // Send email notification
+          try {
+            const { data: merchantData } = await supabase
+              .from('merchants')
+              .select('business_name, users!inner(email)')
+              .eq('id', intent.merchant_id)
+              .single();
+
+            if (merchantData?.users?.email) {
+              const emailData = paymentReceivedEmail({
+                merchantName: merchantData.business_name || 'Merchant',
+                amount: intent.amount,
+                currency: intent.currency,
+                paymentId: intent.id,
+                customerEmail: intent.customer_email,
+                dashboardUrl: `${Deno.env.get('FRONTEND_URL') || 'http://localhost:8080'}/payments`,
+              });
+
+              await sendEmail({
+                to: merchantData.users.email,
+                subject: emailData.subject,
+                html: emailData.html,
+              });
+            }
+          } catch (emailError) {
+            console.error('Failed to send payment notification email:', emailError);
+            // Don't fail the settlement if email fails
+          }
 
           results.push({
             intent_id: intent.id,

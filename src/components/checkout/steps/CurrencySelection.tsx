@@ -17,11 +17,12 @@ interface Currency {
 }
 
 const CURRENCIES: Currency[] = [
+  // Stablecoins (Most Popular)
   {
     id: "USDC",
     name: "USD Coin",
     symbol: "USDC",
-    logo: "/usd-coin-usdc-logo.svg",
+    logo: "https://cryptologos.cc/logos/usd-coin-usdc-logo.svg",
     description: "Stablecoin pegged to USD",
     popular: true,
   },
@@ -29,22 +30,39 @@ const CURRENCIES: Currency[] = [
     id: "USDT",
     name: "Tether",
     symbol: "USDT",
-    logo: "/tether-usdt-logo.svg",
+    logo: "https://cryptologos.cc/logos/tether-usdt-logo.svg",
     description: "Stablecoin pegged to USD",
     popular: true,
   },
   {
+    id: "DAI",
+    name: "Dai",
+    symbol: "DAI",
+    logo: "https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.svg",
+    description: "Decentralized stablecoin",
+  },
+  {
+    id: "BUSD",
+    name: "Binance USD",
+    symbol: "BUSD",
+    logo: "https://cryptologos.cc/logos/binance-usd-busd-logo.svg",
+    description: "Binance stablecoin pegged to USD",
+  },
+
+  // Native Tokens (Popular)
+  {
     id: "SOL",
     name: "Solana",
     symbol: "SOL",
-    logo: "/solana-sol-logo.svg",
+    logo: "https://cryptologos.cc/logos/solana-sol-logo.svg",
     description: "Fast and low-cost blockchain",
+    popular: true,
   },
   {
     id: "ETH",
     name: "Ethereum",
     symbol: "ETH",
-    logo: "/ethereum-eth-logo.svg",
+    logo: "https://cryptologos.cc/logos/ethereum-eth-logo.svg",
     description: "Most popular smart contract platform",
     popular: true,
   },
@@ -52,8 +70,36 @@ const CURRENCIES: Currency[] = [
     id: "MATIC",
     name: "Polygon",
     symbol: "MATIC",
-    logo: "/polygon-matic-logo.svg",
+    logo: "https://cryptologos.cc/logos/polygon-matic-logo.svg",
     description: "Low-cost Ethereum scaling solution",
+  },
+  {
+    id: "BNB",
+    name: "BNB",
+    symbol: "BNB",
+    logo: "https://cryptologos.cc/logos/bnb-bnb-logo.svg",
+    description: "Binance Smart Chain native token",
+  },
+  {
+    id: "AVAX",
+    name: "Avalanche",
+    symbol: "AVAX",
+    logo: "https://cryptologos.cc/logos/avalanche-avax-logo.svg",
+    description: "Fast, low-cost, eco-friendly blockchain",
+  },
+  {
+    id: "ARB",
+    name: "Arbitrum",
+    symbol: "ARB",
+    logo: "https://cryptologos.cc/logos/arbitrum-arb-logo.svg",
+    description: "Ethereum L2 scaling solution",
+  },
+  {
+    id: "OP",
+    name: "Optimism",
+    symbol: "OP",
+    logo: "https://cryptologos.cc/logos/optimism-ethereum-op-logo.svg",
+    description: "Ethereum L2 with low fees",
   },
 ];
 
@@ -100,7 +146,7 @@ export function CurrencySelection({
           >
             <div className="flex items-center gap-4">
               {/* Logo */}
-              <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 p-2 shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 p-2.5 shadow-lg border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
                 <img
                   src={currency.logo}
                   alt={currency.name}

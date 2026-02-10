@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { TwoFactorSettings } from "@/components/TwoFactorSettings";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   Shield,
   Key,
   Activity,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const mockActivityLogs = [
@@ -40,18 +42,36 @@ const mockApiKeys = [
 export default function Security() {
   const { merchant } = useAppStore();
   const { toast } = useToast();
-  
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(merchant?.twoFactorEnabled || false);
+
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [merchantData, setMerchantData] = useState<any>(null);
   const [ipAllowlist, setIpAllowlist] = useState<string[]>([]);
   const [newIp, setNewIp] = useState('');
 
-  const handleToggle2FA = (enabled: boolean) => {
-    setTwoFactorEnabled(enabled);
-    toast({ 
-      title: enabled ? "2FA Enabled" : "2FA Disabled", 
-      description: enabled ? "Two-factor authentication is now active" : "Two-factor authentication has been disabled"
-    });
+  useEffect(() => {
+    fetchMerchantData();
+  }, []);
+
+  const fetchMerchantData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('merchants')
+        .select('id, two_factor_enabled')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      setMerchantData(data);
+      setTwoFactorEnabled(data?.two_factor_enabled || false);
+    } catch (error) {
+      console.error('Error fetching merchant data:', error);
+    }
   };
+
+
 
   const handleAddIp = () => {
     if (!newIp) return;
@@ -89,19 +109,14 @@ export default function Security() {
           <div className="bg-card rounded-lg border border-border p-6">
             <h2 className="font-semibold mb-4">Security Settings</h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Two-Factor Authentication</p>
-                    <p className="text-sm text-muted-foreground">
-                      Require 2FA for admin actions
-                    </p>
-                  </div>
-                </div>
-                <Switch checked={twoFactorEnabled} onCheckedChange={handleToggle2FA} />
-              </div>
-              
+              {merchantData && (
+                <TwoFactorSettings
+                  merchantId={merchantData.id}
+                  twoFactorEnabled={twoFactorEnabled}
+                  onUpdate={fetchMerchantData}
+                />
+              )}
+
               <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                 <div className="flex items-center gap-3">
                   <Lock className="h-5 w-5 text-muted-foreground" />

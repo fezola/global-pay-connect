@@ -15,14 +15,16 @@ import {
   Users,
   CreditCard,
   UserPlus,
-  Link2,
   BarChart3,
+  RotateCcw,
+  Link2,
   Lock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CheckCircle,
   Calendar,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
@@ -40,6 +42,10 @@ const mainNavItems = [
   { label: "Payout Schedules", path: "/payout-schedules", icon: Calendar },
   { label: "Payout Destinations", path: "/payout-destinations", icon: Wallet },
   { label: "Customers", path: "/customers", icon: Users },
+  { label: "Analytics", path: "/analytics", icon: BarChart3 },
+  { label: "Refunds", path: "/refunds", icon: RotateCcw },
+  { label: "Payment Widgets", path: "/payment-widgets", icon: CreditCard, badge: "New" },
+  { label: "Mock Payment Flow", path: "/mock-payment", icon: PlayCircle, badge: "Test" },
 ];
 
 const businessNavItems = [

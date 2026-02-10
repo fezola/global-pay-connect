@@ -4,8 +4,14 @@
  */
 
 export type WalletType = 'phantom' | 'solflare' | 'backpack' | 'metamask' | 'coinbase' | 'walletconnect';
-export type ChainType = 'solana' | 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism';
-export type TokenType = 'USDC' | 'USDT' | 'SOL' | 'ETH' | 'BTC' | 'MATIC' | 'USDC.e' | 'DAI' | 'BUSD';
+export type ChainType = 'solana' | 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'avalanche' | 'bsc';
+export type TokenType =
+  // Stablecoins
+  | 'USDC' | 'USDT' | 'DAI' | 'USDC.e' | 'BUSD'
+  // Native tokens
+  | 'SOL' | 'ETH' | 'MATIC' | 'AVAX' | 'BNB' | 'OP' | 'ARB'
+  // Other
+  | 'BTC';
 
 export interface WalletProvider {
   id: WalletType;

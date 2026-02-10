@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Wallet, ExternalLink, Loader2 } from "lucide-react";
+import { Wallet, ExternalLink, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -16,15 +16,15 @@ import {
   type WalletConnection,
   type ChainType,
 } from "@/lib/walletProviders";
-import { PhantomLogo, MetaMaskLogo, CoinbaseLogo } from "./WalletLogos";
+import { WalletIcon } from "@/components/CryptoIcon";
 
 interface WalletOption {
   id: string;
   name: string;
-  logo: React.ComponentType<{ className?: string }>;
   installed: boolean;
   downloadUrl: string;
   connect: () => Promise<WalletConnection>;
+  supportsMobile?: boolean;
 }
 
 interface WalletConnectProps {
@@ -49,28 +49,39 @@ export function WalletConnect({ chain, onConnect, onBack, theme = "light" }: Wal
       availableWallets.push({
         id: "phantom",
         name: "Phantom",
-        logo: PhantomLogo,
         installed: isPhantomInstalled(),
         downloadUrl: "https://phantom.app/",
         connect: connectPhantom,
+        supportsMobile: true,
       });
-    } else if (chain === "base" || chain === "ethereum") {
+    } else if (chain === "base" || chain === "ethereum" || chain === "polygon" || chain === "arbitrum" || chain === "optimism" || chain === "avalanche" || chain === "bsc") {
       availableWallets.push(
         {
           id: "metamask",
           name: "MetaMask",
-          logo: MetaMaskLogo,
           installed: isMetaMaskInstalled(),
           downloadUrl: "https://metamask.io/",
           connect: connectMetaMask,
+          supportsMobile: true,
         },
         {
           id: "coinbase",
           name: "Coinbase Wallet",
-          logo: CoinbaseLogo,
           installed: isCoinbaseWalletInstalled(),
           downloadUrl: "https://www.coinbase.com/wallet",
           connect: connectMetaMask, // Uses same connection method
+          supportsMobile: true,
+        },
+        {
+          id: "walletconnect",
+          name: "WalletConnect",
+          installed: true, // Always available
+          downloadUrl: "https://walletconnect.com/",
+          connect: async () => {
+            // TODO: Implement WalletConnect
+            throw new Error("WalletConnect coming soon!");
+          },
+          supportsMobile: true,
         }
       );
     }
@@ -139,7 +150,6 @@ export function WalletConnect({ chain, onConnect, onBack, theme = "light" }: Wal
       {/* Wallet Options */}
       <div className="space-y-3">
         {wallets.map((wallet) => {
-          const WalletLogo = wallet.logo;
           return (
             <button
               key={wallet.id}
@@ -154,12 +164,12 @@ export function WalletConnect({ chain, onConnect, onBack, theme = "light" }: Wal
               )}
             >
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 p-2 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <WalletLogo className="w-full h-full" />
+                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 p-2 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                  <WalletIcon wallet={wallet.id} size={32} />
                 </div>
                 <div className="text-left">
                   <div className="font-semibold">{wallet.name}</div>
-                  <div className={cn("text-sm", isDark ? "text-slate-400" : "text-slate-600")}>
+                  <div className={cn("text-sm flex items-center gap-2", isDark ? "text-slate-400" : "text-slate-600")}>
                     {wallet.installed ? (
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
@@ -167,6 +177,12 @@ export function WalletConnect({ chain, onConnect, onBack, theme = "light" }: Wal
                       </span>
                     ) : (
                       "Not installed"
+                    )}
+                    {wallet.supportsMobile && (
+                      <span className="flex items-center gap-1 text-xs">
+                        <Smartphone className="w-3 h-3" />
+                        Mobile
+                      </span>
                     )}
                   </div>
                 </div>

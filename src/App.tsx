@@ -15,6 +15,11 @@ import PayoutDestinations from "./pages/PayoutDestinations";
 import PayoutApprovals from "./pages/PayoutApprovals";
 import PayoutSchedules from "./pages/PayoutSchedules";
 import Customers from "./pages/Customers";
+import Analytics from "./pages/Analytics";
+import Refunds from "./pages/Refunds";
+import MockPaymentFlow from "./pages/MockPaymentFlow";
+import PaymentCheckoutDemo from "./pages/PaymentCheckoutDemo";
+import PaymentWidgetShowcase from "./pages/PaymentWidgetShowcase";
 import Business from "./pages/Business";
 import Compliance from "./pages/Compliance";
 import Billing from "./pages/Billing";
@@ -85,6 +90,27 @@ const App = () => (
             <Route path="/customers" element={
               <ProtectedRoute>
                 <Customers />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/refunds" element={
+              <ProtectedRoute>
+                <Refunds />
+              </ProtectedRoute>
+            } />
+            <Route path="/mock-payment" element={
+              <ProtectedRoute>
+                <MockPaymentFlow />
+              </ProtectedRoute>
+            } />
+            <Route path="/checkout-demo" element={<PaymentCheckoutDemo />} />
+            <Route path="/payment-widgets" element={
+              <ProtectedRoute>
+                <PaymentWidgetShowcase />
               </ProtectedRoute>
             } />
             <Route path="/business" element={

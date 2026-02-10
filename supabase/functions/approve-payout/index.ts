@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail } from "../_shared/send-email-helper.ts";
+import { payoutApprovedEmail } from "../_shared/email-templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,6 +114,40 @@ serve(async (req) => {
     if (txError) {
       console.error("Error generating transaction:", txError);
       // Don't throw - payout is approved, merchant can regenerate transaction
+    }
+
+    // Send email notification
+    try {
+      const { data: userData } = await supabaseService
+        .from('users')
+        .select('email')
+        .eq('id', user.id)
+        .single();
+
+      const { data: destinationData } = await supabaseService
+        .from('payout_destinations')
+        .select('address')
+        .eq('id', payout.destination_id)
+        .single();
+
+      if (userData?.email && destinationData?.address) {
+        const emailData = payoutApprovedEmail({
+          amount: payout.amount,
+          currency: payout.currency,
+          payoutId: payout.id,
+          destinationAddress: destinationData.address,
+          dashboardUrl: `${Deno.env.get('FRONTEND_URL') || 'http://localhost:8080'}/payouts`,
+        });
+
+        await sendEmail({
+          to: userData.email,
+          subject: emailData.subject,
+          html: emailData.html,
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send payout approval email:', emailError);
+      // Don't fail the approval if email fails
     }
 
     return new Response(
